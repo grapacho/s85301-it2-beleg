@@ -2,21 +2,33 @@
 Die Aufgaben beziehen sich auf den Beleg Videostreaming für das Modul Internettechnologien 2.
 
 ## Aufgaben
+
+### 0. Vorarbeiten
+1. Sie clonen das Projekt nach Anleitung aus [Git](git.md).
+2. Sie erstellen die "leeren" Klassen `Rtsp`, `RTPpacket` und `FECHandler` und leiten diese aus den abstrakten Klassen `RtspDemo`, `RTPpacketDemo` und `FECHandlerDemo` ab (Stichwort `extends`).  Das Projekt sollte danach kompilierbar und ausführbar sein.  
+Unter einigen IDEs z.B. IntelliJ können Sie die Klassenrümpfe automatisch erstellen lassen mittels: Generate Contructors sowie implement Methods
+3. Sie konfigurieren die Kommandozeilenparameter für Client und Server wie in der [Projektbeschreibung](Projektbeschreibung.md#2.-programmstart) beschrieben.
+4. Sie erstellen in Ihrem Gitverzeichnis ein Unterverzeichnis mit dem Namen videos und legen in dieses das Beispielvideo htw.mjpeg, siehe Praktikumsdateien auf der HTW-IT2-Homepage.
+
+
 ### 1. RTSP-Protokoll: Client-Methoden
 Die gesamte RTSP-Funktionalität für Client und Server befindet sich in der abstakten Klasse RtspDemo und der von Ihnen abzuleitenden Klasse Rtsp.
 Programmieren Sie die Klasse Rtsp entsprechend der in der Projektbeschreibung und den Kommentaren im Quelltext der abstrakten Klasse RtspDemo gegebenen Hinweisen.
 
-Wenn Sie zunächst die "leeren" Klassen RTPpacket und FECHandler aus den abstrakten Klassen RTPpacketDemo und FECHandlerDemo erstellen, sollte das Projekt kompilierbar und ausführbar sein und Sie können die RTSP-Funktionalität testen. Dazu müssen Sie die Konsolenausgaben inspizieren.
+1. Buttonhandler für alle Methoden ausprogrammieren, als Beispiel siehe den Handler für die setup-Methode und [Hinweise zu Zuständen](projektbeschreibung.md#zustände-des-clients).
+2. Ausprogrammierung der Methode `send_RTSP_request()`. Hier muss über den vorhandenen Stream `RTSPBufferedWriter` der komplette RTSP-Request für alle möglichen Methoden als String zusammengebaut und verschickt werden. Orientieren Sie sich an der beispielhaften [RTSP-Kommunikation](Projektbeschreibung.md#beispiel).
+3. Nach Ihren Arbeiten können Sie die RTSP-Funktionalität testen indem Sie die Konsolenausgaben inspizieren.
+
 
 ### 2. RTSP-Methoden: Server-Methoden
-Ergänzen Sie die RTSP-Methoden OPTIONS und DESCRIBE anhand der Beispiele aus [RFC 2326](https://www.ietf.org/rfc/rfc2326.txt) und [RFC 2327](https://www.ietf.org/rfc/rfc2327.txt). 
+Ergänzen Sie die RTSP-Methoden OPTIONS und DESCRIBE in der Klasse `Rtsp` anhand der Beispiele aus [RFC 2326](https://www.ietf.org/rfc/rfc2326.txt) und [RFC 2327](https://www.ietf.org/rfc/rfc2327.txt). 
 Die Serverantwort muss im Client nicht ausgewertet werden. Die Anzeige der Antwort in der Konsole des Clients genügt.
 
 Es ist ausreichend, sich bei der DESCRIBE-Methode auf das Beispielvideo zu beziehen und die Antwort auf dem Server statisch zu hinterlegen. 
-Ausgewertet werden die u.a. die Parameter framerate und range.
+Ausgewertet werden die u.a. die Parameter `framerate` und `range`.
 
 ### 3. RTP-Protokoll
-Programmieren Sie die Klasse RTPpacket entsprechend der Projektbeschreibung und den Kommentaren im Quelltext der abstrakten Klasse gegebenen Hinweisen.
+Programmieren Sie die Methode setRtpHeader() der Klasse `RTPpacket` entsprechend der Projektbeschreibung und den Kommentaren im Quelltext der abstrakten Klasse gegebenen Hinweisen.
 
 ### 4. Auswertung der Fehlerstatistiken ohne Fehlerkorrektur
 Sie können an der GUI des Servers eine Paketfehlerwahrscheinlichkeit einstellen und damit Netzwerkfehler simulieren. Probieren Sie verschiedene Einstellungen aus und betrachten Sie das Ergebnis in der Videoanzeige. 
