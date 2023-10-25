@@ -12,10 +12,10 @@ Unter einigen IDEs z.B. IntelliJ können Sie die Klassenrümpfe automatisch erst
 
 
 ### 1. RTSP-Protokoll: Client-Methoden
-Die gesamte RTSP-Funktionalität für Client und Server befindet sich in der abstakten Klasse RtspDemo und der von Ihnen abzuleitenden Klasse Rtsp.
-Programmieren Sie die Klasse Rtsp entsprechend der in der Projektbeschreibung und den Kommentaren im Quelltext der abstrakten Klasse RtspDemo gegebenen Hinweisen.
+Die gesamte RTSP-Funktionalität für Client und Server befindet sich in der abstrakten Klasse `RtspDemo` und der von Ihnen abzuleitenden Klasse `Rtsp`.
+Programmieren Sie die Klasse `Rtsp` entsprechend der in der Projektbeschreibung und den Kommentaren im Quelltext der abstrakten Klasse `RtspDemo` gegebenen Hinweisen.
 
-1. Buttonhandler für alle Methoden ausprogrammieren, als Beispiel siehe den Handler für die setup-Methode und [Hinweise zu Zuständen](projektbeschreibung.md#zustände-des-clients).
+1. Buttonhandler für alle Methoden ausprogrammieren, als Beispiel siehe den Handler für die setup-Methode und [Hinweise zu Zuständen](Projektbeschreibung.md#zustände-des-clients).
 2. Ausprogrammierung der Methode `send_RTSP_request()`. Hier muss über den vorhandenen Stream `RTSPBufferedWriter` der komplette RTSP-Request für alle möglichen Methoden als String zusammengebaut und verschickt werden. Orientieren Sie sich an der beispielhaften [RTSP-Kommunikation](Projektbeschreibung.md#beispiel).
 3. Nach Ihren Arbeiten können Sie die RTSP-Funktionalität testen indem Sie die Konsolenausgaben inspizieren.
 
