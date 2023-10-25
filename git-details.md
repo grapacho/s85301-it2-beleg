@@ -1,6 +1,5 @@
 # Arbeiten mit Git
 
-
 ## Arbeiten im eigenen Branch
 Oft ist es sinnvoll, nicht im master-Branch zu arbeiten, sondern in einem eigenen Branch.
 Dadurch kann der master-Branch immer mit dem upstream-Repository synchron gehalten werden.
@@ -13,13 +12,6 @@ lade diesen ins eigene Repo. als Branch `beleg` hoch:
 verknüpfe lokalen Branch mit entferntem Branch (Remote-Tracking-Branch):  
 `git branch -u myrepo/beleg`
 
-Testen lässt sich die korrekte Zuordnung mittels: `git remote -vv`
-```
-htw-upstream	https://nutzer@github.com/HTWDD-RN/RTSP-Streaming (fetch)
-htw-upstream	https://nutzer@github.com/HTWDD-RN/RTSP-Streaming (push)
-myrepo	        https://nutzer@github.com/HTWDD-RN/sXXXXX-yyy-beleg (fetch)
-myrepo	        https://nutzer@github.com/HTWDD-RN/sXXXXX-yyy-beleg (push)
-```
 
 Mittels `git branch -vva` wird die Zuordnung der lokalen Branches zu den Remote-Branches angezeigt (der Marker * zeigt den aktiven Branch an):
 ```
@@ -125,6 +117,4 @@ Zum Import wählen Sie einfach: New - Project from Existing Source. Eine sehr gu
 * Das Git-Buch (kostenlos)  (http://gitbu.ch/)
 * Cheat Sheet
 
-![GitHub-Workflow](/images/git.png)
-<!---  <img src="images/git.png" width="100">   --->
 
