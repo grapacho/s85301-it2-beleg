@@ -20,8 +20,9 @@ Programmieren Sie die Klasse `Rtsp` entsprechend der in der Projektbeschreibung 
 3. Nach Ihren Arbeiten können Sie die RTSP-Funktionalität testen indem Sie die Konsolenausgaben inspizieren.
 
 
-### 2. RTSP-Methoden: Server-Methoden
-Ergänzen Sie die RTSP-Methoden OPTIONS und DESCRIBE in der Klasse `Rtsp` anhand der Beispiele aus [RFC 2326](https://www.ietf.org/rfc/rfc2326.txt) und [RFC 2327](https://www.ietf.org/rfc/rfc2327.txt). 
+### 2. SDP-Protokoll
+Ergänzen Sie die RTSP-Methode DESCRIBE in der Klasse `Rtsp` anhand der Beispiele aus [RFC 2326](https://www.ietf.org/rfc/rfc2326.txt) und [RFC 2327](https://www.ietf.org/rfc/rfc2327.txt).
+Überschreiben Sie dazu die bereits vorhandene Methode `getDescribe()` aus der Klasse `RtspDemo` in der Klasse `Rtsp`.
 Die Serverantwort muss im Client nicht ausgewertet werden. Die Anzeige der Antwort in der Konsole des Clients genügt.
 
 Es ist ausreichend, sich bei der DESCRIBE-Methode auf das Beispielvideo zu beziehen und die Antwort auf dem Server statisch zu hinterlegen. 
@@ -121,13 +122,18 @@ Für diese Aufgabe unterstützt Sie die Statistik am Empfänger mit dem Werten:
 ### 7. Kompatibilität des Demoprojektes
 Prüfen Sie die Kompatibilität des Clients und Servers mit dem VLC-Player und versuchen Sie eventuelle Probleme zu analysieren. Bei Problemen mit VLC 3 versuchen Sie VLC 2.2.
 
-### 8. Videoformat 
-Binden Sie ein kurzes (ca. 0,5 - 2 min) Video Ihrer Wahl ein. Eine Umcodierung zu MJPEG kann zum Beispiel mittels FFMPEG oder VLC-Player erfolgen. Eventuell müssen Sie die Auflösung des Videos verringern, damit die Bilder jeweils in ein UDP-Paket passen.
+
+### 8. Vorschläge
+Manchen Sie konkrete Vorschläge zur Verbesserung des Belegs.
+
+
+### Hinweis 
+Falls Sie ein anderes Video nutzen wollen, ist dieses in das MJPEG-Format zu konvertieren.
+Eine Umcodierung zu MJPEG kann zum Beispiel mittels FFMPEG oder VLC-Player erfolgen. Eventuell müssen Sie die Auflösung des Videos verringern, damit die Bilder jeweils in ein UDP-Paket passen.
 
 `ffmpeg -i test.mp4 -vcodec mjpeg -q:v 10 -huffman 0 -r 10 -vf scale=720:-1 -an test.mjpeg`
 
-### 9. Vorschläge
-Manchen Sie konkrete Vorschläge zur Verbesserung des Belegs.
+
 
 ## Lernaspekte des Belegs
 * Kommunikationsprotokolle
