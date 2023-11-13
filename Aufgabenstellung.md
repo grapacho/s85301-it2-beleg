@@ -8,7 +8,7 @@ Die Aufgaben beziehen sich auf den Beleg Videostreaming für das Modul Internett
 2. Sie erstellen die "leeren" Klassen `Rtsp`, `RTPpacket` und `FECHandler` und leiten diese aus den abstrakten Klassen `RtspDemo`, `RTPpacketDemo` und `FECHandlerDemo` ab (Stichwort `extends`).  Das Projekt sollte danach kompilierbar und ausführbar sein.  
 Unter einigen IDEs z.B. IntelliJ können Sie die Klassenrümpfe automatisch erstellen lassen mittels: Generate Contructors sowie implement Methods
 3. Sie konfigurieren die Kommandozeilenparameter für Client und Server wie in der [Projektbeschreibung](Projektbeschreibung.md#2.-programmstart) beschrieben.
-4. Sie erstellen in Ihrem Gitverzeichnis ein Unterverzeichnis mit dem Namen videos und legen in dieses das Beispielvideo htw.mjpeg, siehe Praktikumsdateien auf der HTW-IT2-Homepage.
+4. Sie erstellen in Ihrem Gitverzeichnis ein Unterverzeichnis mit dem Namen `videos` und legen in dieses das Beispielvideo `htw.mjpeg`, siehe Praktikumsdateien auf der HTW-IT2-Homepage.
 
 
 ### 1. RTSP-Protokoll: Client-Methoden
@@ -30,13 +30,18 @@ Ausgewertet werden die u.a. die Parameter `framerate` und `range`.
 
 ### 3. RTP-Protokoll
 Programmieren Sie die Methode setRtpHeader() der Klasse `RTPpacket` entsprechend der Projektbeschreibung und den Kommentaren im Quelltext der abstrakten Klasse gegebenen Hinweisen.
+Nach dem Setzen des korrekten RTP-Headers sollte das Demovideo abspielbar sein. Im Fehlerfall kann es hilfreich sein, mittels Wireshark den Inhalt der übertragenen RTP-Pakete zu inspizieren. Eventuell ist auch der zur Verfügung gestellte Paketmitschnitt hilfreich.
+
 
 ### 4. Auswertung der Fehlerstatistiken ohne Fehlerkorrektur
 Sie können an der GUI des Servers eine Paketfehlerwahrscheinlichkeit einstellen und damit Netzwerkfehler simulieren. Probieren Sie verschiedene Einstellungen aus und betrachten Sie das Ergebnis in der Videoanzeige. 
 Ab welcher Paketfehlerwahrscheinlichkeit wird die Videoanzeige spürbar beeinträchtigt?
 
-Mit dem ersten Punkt kann die Qualität der Verbindung eingeschätzt werden und mit dem zweiten Punkt die Leistungsfähigkeit des FEC-Verfahrens.
-Machen Sie sich Gedanken über weitere zu überwachende Parameter. Die meisten dieser Daten können aus der Klasse ReceptionStatistic entnommen werden. Verifizieren Sie die korrekte Berechnung dieser Werte.
+Das RTP-Streaming ist z.Z. so konfiguriert, dass ein JPEG-Bild in ein einziges RTP verpackt wird. 
+Berechnen die Wahrscheinlichkeit für den Verlust eines Bildes in Abhängigkeit von der Kanalverlustrate, wenn pro Bild 2 oder 5 RTPs versendet werden.
+Von einem Bildverlust ist dabei auszugehen, wenn mindestens ein RTP der RTPs für ein Bild fehlt.
+Nutzen Sie zur grafischen Darstellung das Programm Gnuplot. Eine Demodatei befindet sich im Projektverzeichnis `statistics`. 
+
 
 ### 5. Implementierung des FEC-Schutzes
 Implementieren Sie einen FEC-Schutz gemäß [RFC 5109](https://www.ietf.org/rfc/rfc5109.txt).
@@ -108,8 +113,15 @@ Hier einige Tipps für die Fehlersuche:
 Finden Sie den optimalen Wert für k bei einer Kanalverlustrate von 10%. Optimal bedeutet in diesem Fall eine subjektiv zufriedenstellende Bildqualität bei geringstmöglicher Redundanz.
 
 #### Bestimmung der theoretisch zu erwartenden Verlustraten
-Versuchen Sie, mathematisch die Paketverlustwahrscheinlichkeit (Restfehler) für verschiedene Gruppengrößen (k=2, 3, 5, 10, 20, 48) zu bestimmen.
-Tragen Sie die Ergebnisse in einem Diagramm über der Kanalfehlerwahrscheinlichkeit auf. Sie können hierfür Gnuplot, R oder ein anderes Tool nutzen. Tragen Sie in das Diagramm zusätzlich mit Ihrem Videostreaming praktisch gemessene Fehlerhäufigkeiten auf (k=2 und k=48). Diskutieren Sie eventuelle Unterschiede zum theoretisch ermittelten Ergebnis.
+
+Tragen Sie die mittels Messung zu gewinnenden Paketverlustwahrscheinlichkeiten (Restfehler) für verschiedene Gruppengrößen (k=2, 3, 6, 12, 24, 48) in dem bereits vorhandenen Gnuplot-Diagramm auf.
+
+Versuchen Sie, mathematisch die Paketverlustwahrscheinlichkeit für die obigen Gruppengrößen zu bestimmen und ebenfalls grafisch darzustellen.
+Gehen Sie dabei von folgenden hypothetischen Übertragungsmodies aus: 1 RTP / Bild, 2 RTPs / Bild und 5 RTPs / Bild.
+
+Für die eigentliche Berechnung können Sie statt Gnuplot auch R oder ein anderes Tool nutzen.
+Diskutieren Sie eventuelle Unterschiede der praktisch und theoretisch ermittelten Ergebnisse.
+
 
 Für diese Aufgabe unterstützt Sie die Statistik am Empfänger mit dem Werten:
 1. aktuelle Puffergröße
@@ -119,8 +131,9 @@ Für diese Aufgabe unterstützt Sie die Statistik am Empfänger mit dem Werten:
 5. Abspielzähler (Pakete / Bilder)
 6. verlorene Bilder
 
+
 ### 7. Kompatibilität des Demoprojektes
-Prüfen Sie die Kompatibilität des Clients und Servers mit dem VLC-Player und versuchen Sie eventuelle Probleme zu analysieren. Bei Problemen mit VLC 3 versuchen Sie VLC 2.2.
+Prüfen Sie die Kompatibilität des Clients und Servers mit dem VLC-Player und versuchen Sie eventuelle Probleme zu analysieren. Dokumentieren Sie die Ergebnisse.
 
 
 ### 8. Vorschläge
