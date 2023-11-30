@@ -1,6 +1,5 @@
-# Abgabeformat
+# Abgabe des Beleges
 
-* Schicken Sie Ihren mittels ZIP gepackten Beleg bis zum Abgabetermin per E-Mail an Herrn Paul (paul@informatik.htw-dresden.de).  
-* Kennzeichen Sie Ihren Studiengang mittels Dateiendung des Archivs "-MI" bzw. "-AI".  
-* Senden Sie bitte nur Ihr erstelltes Demovideo mit dem Beleg (nicht das HTW-Video). Die Größe des Archivs sollte **maximal 30 MB** betragen.
-* Am Ende des Semesters erfolgt dann eine Belegabnahme
+* Ihr Github-Repository auf HTWDD-RN ist die maßgebliche Stelle für die Bewertung.
+* Stellen Sie sicher, dass Sie vor dem Datum der Belegabgabe Ihr Repo auf Github aktualisiert haben (spätere Commits werden nicht gewertet).
+* Zur Belegabnahme am Ende des Semesters führen Sie Ihren Beleg vor, indem Sie Ihr geclontes Repository hierfür nutzen. 
