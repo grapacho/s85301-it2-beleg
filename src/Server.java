@@ -20,6 +20,7 @@ import com.github.sarxos.webcam.Webcam;
 
 public class Server extends JFrame implements ActionListener, ChangeListener {
 
+  private static boolean connection;
   // RTP variables:
   // ----------------
   DatagramSocket RTPsocket; // socket to be used to send and receive UDP packets
@@ -43,6 +44,7 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
   // ----------------
   static int imagenb = 0; // image nb of the image currently transmitted
   VideoReader video; // VideoStream object used to access video frames
+  static String VideoDir = "videos/"; // Directory for videos on the server
   static int DEFAULT_FRAME_PERIOD = 40; // Frame period of the video to stream, in ms
   public VideoMetadata videoMeta = null;
   static Webcam webcam;
@@ -66,10 +68,11 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
 
   static int state; // RTSP Server state == INIT or READY or PLAY
   static Socket RTSPsocket; // socket used to send/receive RTSP messages
+  static int RTSPport = 8554; // standard port for RTSP
   // input and output stream filters
   static BufferedReader RTSPBufferedReader;
   static BufferedWriter RTSPBufferedWriter;
-
+  private static boolean connection;
   static final Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
 
   public Server() {
@@ -143,7 +146,6 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
    * @param e Change Event
    */
   public void stateChanged(ChangeEvent e) {
-    //Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     JSlider source = (JSlider) e.getSource();
     if (!source.getValueIsAdjusting()) {
       if (source.getName().equals("k")) {
@@ -200,57 +202,47 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
   // main
   // ------------------------------------
   public static void main(String[] argv) throws Exception {
-    //Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     CustomLoggingHandler.prepareLogger(logger);
     /* set logging level
      * Level.CONFIG: default information (incl. RTSP requests)
      * Level.ALL: debugging information (headers, received packages and so on)
      */
-    logger.setLevel(Level.CONFIG);
+    logger.setLevel(Level.FINER);
     //logger.setLevel(Level.ALL);
 
-    if (argv.length > 1) {
+    printUsage();
+    if (argv.length > 0) {
+      RTSPport = Integer.parseInt(argv[0]);  // get RTSP socket port from the command line
+    }
+
+    if (argv.length > 2) {
       lossRate = Double.parseDouble(argv[1]);
       startGroupSize = Integer.parseInt(argv[2]);
     }
 
-    // create a Server object
-    Server theServer = new Server();
+    Server theServer = new Server();  // create a Server object
     theServer.setSize(500, 200);
     theServer.setVisible(true);
 
-    // get RTSP socket port from the command line
-    int RTSPport = Integer.parseInt(argv[0]);
+    connection = false;
+    int request_type = 0;
 
+    while (true) {   // loop to handle RTSP requests
+      if (!connection) {
+        connectClient(theServer);
+        state = INIT;   // Initiate RTSPstate
+        stateLabel.setText("INIT");
+        connection = true;
+      }
 
-    // Initiate TCP connection with the client for the RTSP session
-    ServerSocket listenSocket = new ServerSocket(RTSPport);
-    RTSPsocket = listenSocket.accept();
-    listenSocket.close();
+      try {
+        request_type = theServer.rtsp.parse_RTSP_request(); // parse the request -> blocking
+      } catch (IOException e) {
+        logger.log(Level.INFO, "Server: Socket closed from client side");
+        connection = false;
+      }
 
-    // Get Client IP address
-    theServer.ClientIPAddr = RTSPsocket.getInetAddress();
-
-        // Initiate RTSPstate
-    state = INIT;
-    stateLabel.setText("INIT");
-
-    // Set input and output stream filters:
-    RTSPBufferedReader =
-        new BufferedReader(new InputStreamReader(RTSPsocket.getInputStream()));
-    RTSPBufferedWriter =
-        new BufferedWriter(new OutputStreamWriter(RTSPsocket.getOutputStream()));
-
-    theServer.rtsp = new Rtsp(RTSPBufferedReader, RTSPBufferedWriter);
-
-    int request_type;
-
-    // loop to handle RTSP requests
-    while (true) {
-      // parse the request
-      request_type = theServer.rtsp.parse_RTSP_request(); // blocking
-
-      switch (request_type) {
+      if (connection) switch (request_type) {
         case SETUP:
           state = READY;
           stateLabel.setText("READY");
@@ -275,8 +267,6 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
           theServer.timer.setCoalesce(false); // Coalesce can lead to buffer underflow in client
 
           theServer.rtsp.send_RTSP_response(SETUP, RTSPsocket.getLocalPort() );
-          // init the VideoStream object:
-          theServer.video = new VideoReader( theServer.rtsp.getVideoFileName() );
           imagenb = 0;
           break;
 
@@ -327,6 +317,28 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
       }
     }
   }
+
+  private static void printUsage() {
+    System.out.println("usage: java Server [RTSP listening port] [packet loss rate] [FEC group size]");
+  }
+
+  private static void connectClient(Server server) throws IOException {
+    // Initiate TCP connection with the client for the RTSP session
+    ServerSocket listenSocket = new ServerSocket(RTSPport);
+    RTSPsocket = listenSocket.accept();
+    logger.log(Level.INFO, "Client connected: " + RTSPsocket.getInetAddress());
+    listenSocket.close();
+    server.ClientIPAddr = RTSPsocket.getInetAddress();   // Get Client IP address
+
+    // Set input and output stream filters:
+    RTSPBufferedReader =
+        new BufferedReader(new InputStreamReader(RTSPsocket.getInputStream()));
+    RTSPBufferedWriter =
+        new BufferedWriter(new OutputStreamWriter(RTSPsocket.getOutputStream()));
+    server.rtsp = new Rtsp(RTSPBufferedReader, RTSPBufferedWriter);
+  }
+
+
 
   /**
    * Hander for timer
@@ -446,21 +458,21 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
    *  @return metadata structure containing the extracted information
    */
    static VideoMetadata getVideoMetadata(String filename) {
-    //Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     VideoMetadata meta;
 
     String[] splittedFilename = filename.split("\\.");
     switch (splittedFilename[splittedFilename.length-1]) {
       case "avi":
-        meta = AviMetadataParser.parse(filename);
+        meta = AviMetadataParser.parse(VideoDir+filename);
         break;
       case "mov":
-        meta = QuickTimeMetadataParser.parse(filename);
+        meta = QuickTimeMetadataParser.parse(VideoDir+filename);
         break;
       default:
         logger.log(Level.WARNING, "File extension not recognized: " + filename);
       case "mjpg":
       case "mjpeg":
+        logger.log(Level.FINE, "Framerate: " + 1000 / DEFAULT_FRAME_PERIOD);
         meta = new VideoMetadata(1000 / DEFAULT_FRAME_PERIOD);
         break;
     }

@@ -1,5 +1,6 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.ListIterator;
@@ -40,7 +41,7 @@ abstract class RtspDemo {
 
   /*  *********************** Server variables  **************************** */
   static int MJPEG_TYPE = 26; // RTP payload type for MJPEG video
-  static String VideoDir = "videos/"; // Directory for videos on the server
+  //static String VideoDir = "videos/"; // Directory for videos on the server
   String sdpTransportLine = "";
   public int getRTP_dest_port() {
     return RTP_dest_port;
@@ -298,9 +299,9 @@ abstract class RtspDemo {
     // rtspBody.write("a=mimetype:string;\"video/mjpeg\"" + CRLF);
     rtspBody.write("a=framerate:" + meta.getFramerate() + CRLF);
     // Audio ist not supported yet
-    rtspBody.write("m=audio " + "0" + " RTP/AVP " + "0" + CRLF);
-    rtspBody.write("a=rtpmap:" + "0" + " PCMU/8000" + CRLF);
-    rtspBody.write("a=control:trackID=" + "1" + CRLF);
+    //rtspBody.write("m=audio " + "0" + " RTP/AVP " + "0" + CRLF);
+    //rtspBody.write("a=rtpmap:" + "0" + " PCMU/8000" + CRLF);
+    //rtspBody.write("a=control:trackID=" + "1" + CRLF);
     //
     rtspBody.write("a=range:npt=0-");
     if (meta.getDuration() > 0.0) {
@@ -325,66 +326,57 @@ abstract class RtspDemo {
    *
    * @return RTSP-Request Type (SETUP, PLAY, etc.)
    */
-   int parse_RTSP_request() {
+  int parse_RTSP_request() throws IOException {
     int request_type = -1;
-    try {
-      logger.log(Level.INFO, "*** wait for RTSP-Request ***");
-      // parse request line and extract the request_type:
-      String RequestLine = RTSPBufferedReader.readLine();
-      // System.out.println("RTSP Server - Received from Client:");
-      logger.log(Level.CONFIG, RequestLine);
-
-      StringTokenizer tokens = new StringTokenizer(RequestLine);
-      String request_type_string = tokens.nextToken();
-
-      // convert to request_type structure:
-      request_type = switch ((request_type_string)) {
-        case "SETUP"    -> SETUP;
-        case "PLAY"     -> PLAY;
-        case "PAUSE"    -> PAUSE;
-        case "TEARDOWN" -> TEARDOWN;
-        case "OPTIONS"  -> OPTIONS;
-        case "DESCRIBE" -> DESCRIBE;
-        default -> request_type;
-      };
-
-      if (request_type == SETUP
-          || request_type == DESCRIBE) {
-        // extract VideoFileName from RequestLine
-        String dir = tokens.nextToken();
-        //String[] tok = dir.split(".+?/(?=[^/]+$)");
-        String[] tok = dir.split("/");
-        //VideoFileName = VideoDir + tok[1];
-        VideoFileName = VideoDir + tok[3];
-        logger.log(Level.CONFIG, "File: " + VideoFileName);
-      }
-
-      String line;
-      line = RTSPBufferedReader.readLine();
-      while (!line.isEmpty()) {
-        logger.log(Level.FINE, line);
-        if (line.contains("CSeq")) {
-          tokens = new StringTokenizer(line);
-          tokens.nextToken();
-          RTSPSeqNb = Integer.parseInt(tokens.nextToken());
-        } else if (line.contains("Transport")) {
-          sdpTransportLine = line;
-          RTP_dest_port = Integer.parseInt( line.split("=")[1].split("-")[0] );
-          FEC_dest_port = RTP_dest_port + 0;
-          logger.log(Level.FINE, "Client-Port: " + RTP_dest_port);
-        }
-        // else is any other field, not checking for now
-
-        line = RTSPBufferedReader.readLine();
-      }
-
-      logger.log(Level.INFO, "*** Request received ***\n");
-
-    } catch (Exception ex) {
-      ex.printStackTrace();
-      logger.log(Level.SEVERE, "Exception caught: " + ex);
-      System.exit(0);
+    logger.log(Level.INFO, "*** wait for RTSP-Request ***");
+    String RequestLine = RTSPBufferedReader.readLine();
+    if (RequestLine == null) {   // null in case of closed socket (EOF)
+      logger.log(Level.WARNING, "RTSP-Request is null");
+      throw new IOException("Socket closed by client");
     }
+    logger.log(Level.CONFIG, "RTSP: Client-Request:" + RequestLine);
+
+    StringTokenizer tokens = new StringTokenizer(RequestLine);
+    String request_type_string = tokens.nextToken();
+
+    // convert to request_type structure:
+    request_type = switch ((request_type_string)) {
+      case "SETUP" -> SETUP;
+      case "PLAY" -> PLAY;
+      case "PAUSE" -> PAUSE;
+      case "TEARDOWN" -> TEARDOWN;
+      case "OPTIONS" -> OPTIONS;
+      case "DESCRIBE" -> DESCRIBE;
+      default -> request_type;
+    };
+
+    if (request_type == SETUP || request_type == DESCRIBE) {
+      String dir = tokens.nextToken(); // extract VideoFileName from RequestLine
+      //String[] tok = dir.split(".+?/(?=[^/]+$)");
+      String[] tok = dir.split("/");
+      VideoFileName = tok[3];
+      logger.log(Level.CONFIG, "File: " + VideoFileName);
+    }
+
+    String line;
+    line = RTSPBufferedReader.readLine();
+    while (!line.isEmpty()) {
+      logger.log(Level.FINE, line);
+      if (line.contains("CSeq")) {
+        tokens = new StringTokenizer(line);
+        tokens.nextToken();
+        RTSPSeqNb = Integer.parseInt(tokens.nextToken());
+      } else if (line.contains("Transport")) {
+        sdpTransportLine = line;
+        RTP_dest_port = Integer.parseInt(line.split("=")[1].split("-")[0]);
+        FEC_dest_port = RTP_dest_port + 0;
+        logger.log(Level.FINE, "Client-Port: " + RTP_dest_port);
+      }
+      // else is any other field, not checking for now
+
+      line = RTSPBufferedReader.readLine();
+    }
+    logger.log(Level.INFO, "*** Request received ***\n");
     return (request_type);
   }
 
@@ -394,7 +386,6 @@ abstract class RtspDemo {
    * @param method RTSP-Method
    */
    void send_RTSP_response(int method, int... localPort) {
-    Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     logger.log(Level.INFO, "*** send RTSP-Response ***");
     try {
       RTSPBufferedWriter.write("RTSP/1.0 200 OK" + CRLF);
@@ -407,6 +398,7 @@ abstract class RtspDemo {
           break;
         case DESCRIBE:
           VideoMetadata meta = Server.getVideoMetadata(VideoFileName);
+          logger.log(Level.INFO, "SDP: " + getDescribe(meta, RTP_dest_port));
           RTSPBufferedWriter.write( getDescribe(meta, RTP_dest_port ));
           break;
         case SETUP:
