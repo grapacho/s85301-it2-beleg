@@ -3,6 +3,7 @@ Server
 usage: java Server [RTSP listening port]
 ---------------------- */
 
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.*;
 import java.awt.*;
@@ -14,6 +15,8 @@ import javax.swing.*;
 import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.imageio.ImageIO;
+import com.github.sarxos.webcam.Webcam;
 
 public class Server extends JFrame implements ActionListener, ChangeListener {
 
@@ -42,6 +45,7 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
   VideoReader video; // VideoStream object used to access video frames
   static int DEFAULT_FRAME_PERIOD = 40; // Frame period of the video to stream, in ms
   public VideoMetadata videoMeta = null;
+  static Webcam webcam;
 
   Timer timer; // timer used to send the images at the video frame rate
   // byte[] buf; // buffer used to store the images to send to the client
@@ -256,6 +260,15 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
             theServer.videoMeta = Server.getVideoMetadata(theServer.rtsp.getVideoFileName() );
           }
 
+          if (theServer.rtsp.getVideoFileName().endsWith("webcam")) {
+            webcam = Webcam.getDefault();
+            webcam.close();
+            webcam.setViewSize(new Dimension(640,480));
+            webcam.open();
+          } else { // File
+            theServer.video = new VideoReader( VideoDir + theServer.rtsp.getVideoFileName() );
+          }
+
           // init Timer
           theServer.timer = new Timer(1000 / theServer.videoMeta.getFramerate(), theServer);
           theServer.timer.setInitialDelay(0);
@@ -294,6 +307,9 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
           theServer.timer.stop();
           theServer.videoMeta = null;
           theServer.rtpHandler.reset();
+          if (theServer.rtsp.getVideoFileName().endsWith("webcam")) {
+            webcam.close();
+          }
           break;
 
         case OPTIONS:
@@ -323,10 +339,15 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
     byte[] packet_bits;
 
     try {
-      byte[] frame = video.readNextImage(); // get next frame
-      if (frame != null) {
-        logger.log(Level.FINE, "Frame size: " + frame.length);
-        packet_bits = rtpHandler.jpegToRtpPacket(frame, videoMeta.getFramerate());
+      if (rtsp.getVideoFileName().endsWith("webcam")) {
+        BufferedImage image = webcam.getImage();
+        jpegFrame = toByteArray(image, "jpg");  // convert BufferedImage to byte[]
+      } else {
+        jpegFrame = video.readNextImage();  // get next frame from file
+      }
+
+      if (jpegFrame != null) {
+        logger.log(Level.FINE, "Image size: " + jpegFrame.length);
 
         // send the packet as a DatagramPacket over the UDP socket
         senddp = new DatagramPacket(packet_bits, packet_bits.length, ClientIPAddr, rtsp.getRTP_dest_port() );
@@ -446,5 +467,13 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
 
     assert meta != null : "VideoMetadata of file " + filename + " was not initialized correctly";
     return meta;
+  }
+
+  // convert BufferedImage to byte[]
+  public static byte[] toByteArray(BufferedImage bi, String format) throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    ImageIO.write(bi, format, baos);
+    byte[] bytes = baos.toByteArray();
+    return bytes;
   }
 }
