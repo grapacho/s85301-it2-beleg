@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.util.ArrayList;
@@ -14,7 +15,6 @@ import java.util.logging.Logger;
 
 /**
  * Handler for RTP packets.
- *
  * Processes all RTP packets and provides JPEG images for displaying
  *
  * @author Emanuel Günther
@@ -68,9 +68,9 @@ public class RtpHandler {
     private HashMap<Integer, Integer> firstRtp= null; // first RTP of a jpeg-frame
     private HashMap<Integer, Integer> lastRtp= null; // last RTP of a jpeg-frame
     private ReceptionStatistic statistics = null;
+    private Receiver receiver = null;           // RTP receiver thread
 
-
-    private Boolean isServer = false;
+    private Boolean isServer;
     static final Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
 
     /**
@@ -135,7 +135,7 @@ public class RtpHandler {
         }
 
         byte[] fecPacket = fecHandler.getPacket();
-        byte[] encryptedPacket = null;
+        byte[] encryptedPacket;
 
         switch (encryptionMode) {
         case SRTP:
@@ -157,7 +157,7 @@ public class RtpHandler {
     /**
      * Check for the availability of an FEC packet.
      *
-     * @return bolean value if FEC packet available
+     * @return boolean value if FEC packet available
      */
     public boolean isFecPacketAvailable() {
         if (fecEncodingEnabled) {
@@ -169,26 +169,18 @@ public class RtpHandler {
 
     /**
      * Transform a JPEG image to an RTP packet.
-     *
-     * Takes care of all steps inbetween.
+     * Takes care of all steps between.
      *
      * @param jpegImage JPEG image as byte array
      * @return RTP packet as byte array
      */
     public List<RtpPacket> jpegToRtpPackets(final byte[] jpegImage, int framerate) {
-        byte[] image = null;
+        byte[] image = switch (encryptionMode) {
+          case JPEG -> jpegEncryptionHandler.encrypt(jpegImage);
+          default -> jpegImage;
+        };
 
-        switch (encryptionMode) {
-            case JPEG:
-                image = jpegEncryptionHandler.encrypt(jpegImage);
-                break;
-            case JPEG_ATTACK:
-            case SRTP:
-            default:
-                image = jpegImage;
-                break;
-        }
-        JpegFrame frame = JpegFrame.getFromJpegBytes(image); // convert JPEG to RTP payload
+      JpegFrame frame = JpegFrame.getFromJpegBytes(image); // convert JPEG to RTP payload
 
         List<RtpPacket> rtpPackets = new ArrayList<>();
         currentTS += (90000 / framerate); // TS is the same for all fragments
@@ -283,7 +275,6 @@ public class RtpHandler {
 
     /**
      * Get next image for playback.
-     *
      * This method is the main interface for continuously getting images
      * for the purpose of displaying them.
      *
@@ -313,7 +304,7 @@ public class RtpHandler {
                 + (packetList.get(0).gettimestamp() & 0xFFFFFFFFL)
                 + " size: " + image.length);
 
-        byte[] decryptedImage = null;
+        byte[] decryptedImage;
         switch (encryptionMode) {
         case JPEG:
             decryptedImage = jpegEncryptionHandler.decrypt(image);
@@ -382,7 +373,6 @@ public class RtpHandler {
 
     /**
      * Get the RTP packet with the given sequence number.
-     *
      * This is the main method for getting RTP packets. It currently
      * includes error correction via FEC, but can be extended in the future.
      *
@@ -416,6 +406,46 @@ public class RtpHandler {
 
     // ***************************** RTP-Receiver  ***************************************
 
+    public void startReceiver(int port) {
+        receiver = new Receiver(port);
+    }
+
+    public void stopReceiver() {
+        logger.log(Level.FINE, "RTP-Receiver try stopping...");
+        receiver.interrupt();
+        receiver.rtpSocket.close();
+    }
+
+    private class Receiver extends Thread {
+        DatagramSocket rtpSocket;
+        public Receiver(int port) {
+            super("RTP-Receiver");
+          try {
+            rtpSocket = new DatagramSocket( port );
+            logger.log(Level.FINE, "Socket receive buffer: " + rtpSocket.getReceiveBufferSize());
+          } catch (SocketException e) {
+            throw new RuntimeException(e);
+          }
+          start();
+        }
+        public void run() {
+            byte[] buffer = new byte[65356];
+            DatagramPacket rcvdp = new DatagramPacket(buffer, buffer.length);
+            while ( !interrupted()) {
+                try {
+                    rtpSocket.receive(rcvdp);
+                    processRtpPacket(rcvdp.getData(), rcvdp.getLength());
+                } catch (SocketException e) {
+                    break;
+                }
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            logger.log(Level.FINE, "RTP-Receiver stopped");
+        }
+    }
+
     /**
      * Process and store a received RTP packet.
      *
@@ -425,7 +455,7 @@ public class RtpHandler {
         RtpPacket packet = new RtpPacket(packetData, packetLength);
         int seqNr = packet.getsequencenumber();
 
-        RtpPacket decryptedPacket = null;
+        RtpPacket decryptedPacket;
         switch (encryptionMode) {
             case SRTP:
                 decryptedPacket = srtpHandler.retrieveFromSrtp(packet.getpacket());
@@ -530,12 +560,10 @@ public class RtpHandler {
                         SrtpHandler.EncryptionAlgorithm.AES_CTR,
                         SrtpHandler.MacAlgorithm.NONE,
                         defaultKey, defaultSalt, 0);
-            } catch (InvalidKeyException ikex) {
+            } catch (InvalidKeyException | InvalidAlgorithmParameterException ikex) {
                 System.out.println(ikex);
-            } catch (InvalidAlgorithmParameterException iapex) {
-                System.out.println(iapex);
             }
-            if (srtpHandler == null) {
+          if (srtpHandler == null) {
                 return false;
             }
             break;

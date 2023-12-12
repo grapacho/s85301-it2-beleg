@@ -48,21 +48,15 @@ public class Client {
   int iteration = 0;  // for displaying statistics
 
   // ******************** RTP variables: *****************************
-  DatagramSocket RTPsocket; // socket to be used to send and receive UDP packets
-  //DatagramSocket FECsocket; // socket to be used to send and receive UDP packets for FEC
   private static RtpHandler rtpHandler;
   static int RTP_RCV_PORT = 25000; // port where the client will receive the RTP packets
   // static int FEC_RCV_PORT = 25002; // port where the client will receive the RTP packets
-  static final int MAX_FRAME_SIZE = 65536;
-  static final int RCV_RATE = 2;  // interval for receiving loop
   static final int FRAME_RATE = 40;  // default frame rate
-  Timer timer; // timer used to receive data from the UDP socket
   Timer timerPlay; // timer used to display the frames at correct frame rate
 
   // ********************** RTSP variables ************************
-  Socket RTSPsocket; // socket used to send/receive RTSP messages
-  // input and output stream filters
-  static BufferedReader RTSPBufferedReader;
+  Socket RTSPsocket;    // socket used to send/receive RTSP messages
+  static BufferedReader RTSPBufferedReader;  // input and output stream filters
   static BufferedWriter RTSPBufferedWriter;
   static String rtspServer;
   static int rtspPort;
@@ -141,13 +135,7 @@ public class Client {
 
     mainPanel.getRootPane().setDefaultButton(describeButton);
     describeButton.requestFocus();
-
-    // ***************** init timer ***************
-    timer = new Timer(RCV_RATE, new timerListener());
-    timer.setInitialDelay(0);
-    timer.setCoalesce(true); // combines events
   }
-
 
 
   /**
@@ -175,12 +163,9 @@ public class Client {
     rtspUrl = "rtsp://" + ServerHost + ":" + RTSP_server_port + "/";
     VideoFileName = argv[2];    // get video filename to request:
 
-
     rtpHandler = new RtpHandler(false);       // init RTP handler
 
-    //TODO init must be done before creating the client
     Client theClient = new Client();  // Create a Client object
-
 
     theClient.textField.setText(VideoFileName);
     if (argv.length > 3) {
@@ -188,7 +173,7 @@ public class Client {
       theClient.pufferNumber.setText(argv[3]);
       logger.log(Level.FINE, "Jitter buffer size: " + Integer.parseInt(argv[3]));
     }
-
+    // TODO move to RTSP
     theClient.RTSPsocket = new Socket(ServerIPAddr, RTSP_server_port); // RTSP-connection
     // Set input and output stream filters:
     RTSPBufferedReader =
@@ -199,35 +184,23 @@ public class Client {
     rtsp = new Rtsp(RTSPBufferedReader, RTSPBufferedWriter, RTP_RCV_PORT, rtspUrl, VideoFileName);
   }
 
-    class setupButtonListener implements ActionListener {
+
+  class setupButtonListener implements ActionListener {
     public void actionPerformed(ActionEvent e) {
       logger.log(Level.INFO, "Setup Button pressed ! ");
-      rtsp.setVideoFileName( textField.getText() );
-      rtpHandler.setJitterBufferStartSize( Integer.parseInt(pufferNumber.getText() ));
+      rtsp.setVideoFileName(textField.getText());
+      rtpHandler.setJitterBufferStartSize(Integer.parseInt(pufferNumber.getText()));
 
       if (rtsp.setup()) {
-        try {
-          RTPsocket = new DatagramSocket(RTP_RCV_PORT );  // receive Media data
-          // for now FEC packets are received via RTP-Port, so keep comment below
-          // FECsocket = new DatagramSocket(FEC_RCV_PORT);
-
-          RTPsocket.setSoTimeout(1 ); // smallest value (ms) for blocking time
-          logger.log(Level.FINE, "Socket receive buffer: " + RTPsocket.getReceiveBufferSize());
-
-          rtpHandler.setFecDecryptionEnabled(checkBoxFec.isSelected());
-          // Init the play timer
-          int timerDelay = FRAME_RATE; // use default delay
-          if (rtsp.getFramerate() != 0) { // if information available, use that
-            timerDelay = 1000/rtsp.getFramerate(); // delay in ms
-          }
-          timerPlay = new Timer(timerDelay, new timerPlayListener());
-          timerPlay.setCoalesce(true); // combines events
-          // timerPlay.setInitialDelay(0);
-
-        } catch (SocketException se) {
-          logger.log(Level.SEVERE, "Socket exception: " + se);
-          System.exit(0);
+        rtpHandler.startReceiver(RTP_RCV_PORT);
+        rtpHandler.setFecDecryptionEnabled(checkBoxFec.isSelected());
+        // Init the play timer
+        int timerDelay = FRAME_RATE; // use default delay
+        if (rtsp.getFramerate() != 0) { // if information available, use that
+          timerDelay = 1000 / rtsp.getFramerate(); // delay in ms
         }
+        timerPlay = new Timer(timerDelay, new timerPlayListener());
+        timerPlay.setCoalesce(true); // combines events
         statusLabel.setText("READY");
         mainPanel.getRootPane().setDefaultButton(playButton);
         playButton.requestFocus();
@@ -243,13 +216,14 @@ public class Client {
           statusLabel.setText("PLAY ");
           mainPanel.getRootPane().setDefaultButton(pauseButton);
           pauseButton.requestFocus();
-          timer.start(); // start playback RTP-frames
           timerPlay.start();
         }
     }
   }
 
-  /** Handler for Pause button */
+  /**
+   * Handler for Pause button
+   */
   class pauseButtonListener implements ActionListener {
     public void actionPerformed(ActionEvent e) {
       logger.log(Level.INFO, "Pause Button pressed ! ");
@@ -257,9 +231,8 @@ public class Client {
         statusLabel.setText("READY ");
         mainPanel.getRootPane().setDefaultButton(playButton);
         playButton.requestFocus();
-          timer.stop();  // stop playback
-          timerPlay.stop();
-          timerPlay.setInitialDelay(0);
+        timerPlay.stop();
+        timerPlay.setInitialDelay(0);
       }
     }
   }
@@ -272,10 +245,8 @@ public class Client {
         statusLabel.setText("INIT ");
         progressPosition.setValue(0);
         rtpHandler.reset();
-        timer.stop();  // stop playback
+        rtpHandler.stopReceiver();
         timerPlay.stop();
-        //videoStart = false;
-        RTPsocket.close();
       }
     }
   }
@@ -305,28 +276,9 @@ public class Client {
     }
   }
 
-  /** Handler for the timer event fetches the RTP-packets and displays the images */
-  class timerListener implements ActionListener {
-    byte[] buf = new byte[MAX_FRAME_SIZE]; // allocate memory to receive UDP data from server
-
-    public void actionPerformed(ActionEvent e) {
-      DatagramPacket rcvDp = new DatagramPacket(buf, buf.length); // RTP needs UDP socket
-      try {
-        while (true) {
-          RTPsocket.receive(rcvDp); // receive the DP from the socket:
-          rtpHandler.processRtpPacket(rcvDp.getData(), rcvDp.getLength());
-        }
-      } catch (InterruptedIOException iioe) {
-        // System.out.println("Nothing to read");
-      } catch (IOException ioe) {
-        logger.log(Level.SEVERE, "Exception caught: " + ioe);
-      }
-    }
-  }
 
   /** Displays one frame if available */
   class timerPlayListener implements ActionListener {
-
     public void actionPerformed(ActionEvent e) {
       ReceptionStatistic rs = rtpHandler.getReceptionStatistic();
       byte[] payload;
@@ -339,7 +291,6 @@ public class Client {
         iteration = 0;
       }
       iteration++;
-
 
 
       // check for end of display JPEGs
