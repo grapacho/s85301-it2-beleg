@@ -42,6 +42,14 @@ Berechnen die Wahrscheinlichkeit für den Verlust eines Bildes in Abhängigkeit 
 Von einem Bildverlust ist dabei auszugehen, wenn mindestens ein RTP der RTPs für ein Bild fehlt.
 Nutzen Sie zur grafischen Darstellung das Programm Gnuplot. Eine Demodatei befindet sich im Projektverzeichnis `statistics`. 
 
+Statistik am Empfänger:
+1. aktuelle Puffergröße
+2. letzte empfangene Sequenznummer
+3. Anzahl erhaltener / verlorener Medienpakete + prozentuale Angabe verlorener Medienpakete
+4. Anzahl korrigierter / unkorrigierbarer Medienpakete + prozentuale Angabe unkorrigierbarer Medienpakete
+5. Abspielzähler (Pakete / Bilder)
+6. verlorene Bilder
+
 
 ### 5. Implementierung des FEC-Schutzes
 Implementieren Sie einen FEC-Schutz gemäß [RFC 5109](https://www.ietf.org/rfc/rfc5109.txt).
@@ -109,31 +117,23 @@ Hier einige Tipps für die Fehlersuche:
 
 
 ### 6. Analyse der Leistungsfähigkeit des implementieren FEC-Verfahrens
-#### Parameterwahl
+#### 6.1. Parameterwahl
 Finden Sie den optimalen Wert für k bei einer Kanalverlustrate von 10%. Optimal bedeutet in diesem Fall eine subjektiv zufriedenstellende Bildqualität bei geringstmöglicher Redundanz.
 
-#### Bestimmung der theoretisch zu erwartenden Verlustraten
+#### 6.2. Bestimmung der Verlustraten mittels Simulation
+Tragen Sie die mittels Messung (Simulation) zu gewinnenden Paketverlustwahrscheinlichkeiten nach FEC (Restfehler) für verschiedene Kanalfehlerraten (Pe = 0...1) und verschiedene Gruppengrößen (k=2, 6, 12, 48) in dem bereits vorhandenen Gnuplot-Diagramm auf. Besonders interressant ist der Bereich mit geringen Fehleraten (0 -- 0,2). Die Restfehlerwahrscheilichkeit können Sie direkt in den Statistikangaben ablesen (Ratio nach FEC). Sie müssen die Simulation nicht immer bis zum Ende ablaufen lassen, der Ergebniswert sollte allerdings stabil sein und das Ratio vor FEC dem gewüschten Kanalfehler entsprechen.
 
-Tragen Sie die mittels Messung zu gewinnenden Paketverlustwahrscheinlichkeiten (Restfehler) für verschiedene Gruppengrößen (k=2, 3, 6, 12, 24, 48) in dem bereits vorhandenen Gnuplot-Diagramm auf.
+#### 6.3. Abschätzung der zu erwartenden Verlustraten mittels theoretischer Betrachtung
+Versuchen Sie, mathematisch die Paketverlustwahrscheinlichkeit für die obigen Gruppengrößen zu bestimmen und ebenfalls grafisch darzustellen. Sie können von dem Zusammenhang zwischen Guppenfehler und kanalfehler ausgehen (Folie FEC-Einführung Seite 11). Zu beachten ist allerdings, das wir hier die Paketverlustwahrscheinlichkeit und nicht die Gruppenverlustwahrscheinlickeit benötigen.
 
-Versuchen Sie, mathematisch die Paketverlustwahrscheinlichkeit für die obigen Gruppengrößen zu bestimmen und ebenfalls grafisch darzustellen.
-Gehen Sie dabei von folgenden hypothetischen Übertragungsmodies aus: 1 RTP / Bild, 2 RTPs / Bild und 5 RTPs / Bild.
+Stellen Sie weiterhin die Bildberlustwahrscheinlichkeit dar wenn von folgenden hypothetischen Übertragungsmodies ausgegangen wird: 1 RTP/Bild, 5 RTPs/Bild und 20 RTPs/Bild.
 
 Für die eigentliche Berechnung können Sie statt Gnuplot auch R oder ein anderes Tool nutzen.
 Diskutieren Sie eventuelle Unterschiede der praktisch und theoretisch ermittelten Ergebnisse.
 
 
-Für diese Aufgabe unterstützt Sie die Statistik am Empfänger mit dem Werten:
-1. aktuelle Puffergröße
-2. letzte empfangene Sequenznummer
-3. Anzahl erhaltener / verlorener Medienpakete + prozentuale Angabe verlorener Medienpakete
-4. Anzahl korrigierter / unkorrigierbarer Medienpakete + prozentuale Angabe unkorrigierbarer Medienpakete
-5. Abspielzähler (Pakete / Bilder)
-6. verlorene Bilder
-
-
 ### 7. Kompatibilität des Demoprojektes
-Prüfen Sie die Kompatibilität des Clients und Servers mit dem VLC-Player und versuchen Sie eventuelle Probleme zu analysieren. Dokumentieren Sie die Ergebnisse.
+Prüfen Sie die Kompatibilität des Clients und Servers mit frei verfügbaren RTSP-Playern/-Servern (z.B. VLC-Player oder FFMPEG) und versuchen Sie eventuelle Probleme zu analysieren. Dokumentieren Sie die Ergebnisse.
 
 
 ### 8. Vorschläge
