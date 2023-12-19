@@ -116,37 +116,32 @@ Hier einige Tipps für die Fehlersuche:
 * Test der Anzahl verlorener / wiederhergestellter Pakete auf Plausibilität
 
 
-### 6. Analyse der Leistungsfähigkeit des implementieren FEC-Verfahrens
+### 6. Analyse der Leistungsfähigkeit des implementierten FEC-Verfahrens
 #### 6.1. Parameterwahl
 Finden Sie den optimalen Wert für k bei einer Kanalverlustrate von 10%. Optimal bedeutet in diesem Fall eine subjektiv zufriedenstellende Bildqualität bei geringstmöglicher Redundanz.
 
 #### 6.2. Bestimmung der Verlustraten mittels Simulation
-Tragen Sie die mittels Messung (Simulation) zu gewinnenden Paketverlustwahrscheinlichkeiten nach FEC (Restfehler) für verschiedene Kanalfehlerraten (Pe = 0...1) und verschiedene Gruppengrößen (k=2, 6, 12, 48) in dem bereits vorhandenen Gnuplot-Diagramm auf. Besonders interressant ist der Bereich mit geringen Fehleraten (0 -- 0,2). Die Restfehlerwahrscheilichkeit können Sie direkt in den Statistikangaben ablesen (Ratio nach FEC). Sie müssen die Simulation nicht immer bis zum Ende ablaufen lassen, der Ergebniswert sollte allerdings stabil sein und das Ratio vor FEC dem gewüschten Kanalfehler entsprechen.
+Tragen Sie die mittels Messung (Simulation) zu gewinnenden Paketverlustwahrscheinlichkeiten nach FEC (Restfehler) für verschiedene Kanalfehlerraten (Pe = 0...1) und verschiedene Gruppengrößen (k=2, 6, 12, 48) in dem bereits vorhandenen Gnuplot-Diagramm auf. Besonders interressant ist der Bereich mit geringen Fehleraten (0 -- 0,2). Die Restfehlerwahrscheilichkeit können Sie direkt in den Statistikangaben ablesen (Ratio nach FEC). Sie müssen die Simulation nicht immer bis zum Ende ablaufen lassen, der Ergebniswert sollte allerdings stabil sein und das Ratio vor FEC der gewüschten Kanalfehlerrate entsprechen.
 
 #### 6.3. Abschätzung der zu erwartenden Verlustraten mittels theoretischer Betrachtung
-Versuchen Sie, mathematisch die Paketverlustwahrscheinlichkeit für die obigen Gruppengrößen zu bestimmen und ebenfalls grafisch darzustellen. Sie können von dem Zusammenhang zwischen Guppenfehler und kanalfehler ausgehen (Folie FEC-Einführung Seite 11). Zu beachten ist allerdings, das wir hier die Paketverlustwahrscheinlichkeit und nicht die Gruppenverlustwahrscheinlickeit benötigen.
+Versuchen Sie, mathematisch die Paketverlustwahrscheinlichkeit für die obigen Gruppengrößen zu bestimmen und ebenfalls grafisch darzustellen. Sie können von dem Zusammenhang zwischen Guppenfehler und Kanalfehler ausgehen (Folie FEC-Einführung Seite 11). Zu beachten ist allerdings, das wir hier die Paketverlustwahrscheinlichkeit und nicht die Gruppenverlustwahrscheinlichkeit benötigen. Eine Näherungsformel für kleine Fehlerraten ist hier ausreichend.
 
-Stellen Sie weiterhin die Bildberlustwahrscheinlichkeit dar wenn von folgenden hypothetischen Übertragungsmodies ausgegangen wird: 1 RTP/Bild, 5 RTPs/Bild und 20 RTPs/Bild.
+Stellen Sie weiterhin die Bildverlustwahrscheinlichkeit dar, wenn von folgenden hypothetischen Übertragungsmodies ausgegangen wird: 1 RTP/Bild, 5 RTPs/Bild und 20 RTPs/Bild.
 
 Für die eigentliche Berechnung können Sie statt Gnuplot auch R oder ein anderes Tool nutzen.
 Diskutieren Sie eventuelle Unterschiede der praktisch und theoretisch ermittelten Ergebnisse.
 
-
 ### 7. Kompatibilität des Demoprojektes
 Prüfen Sie die Kompatibilität des Clients und Servers mit frei verfügbaren RTSP-Playern/-Servern (z.B. VLC-Player oder FFMPEG) und versuchen Sie eventuelle Probleme zu analysieren. Dokumentieren Sie die Ergebnisse.
 
-
 ### 8. Vorschläge
 Manchen Sie konkrete Vorschläge zur Verbesserung des Belegs.
-
 
 ### Hinweis 
 Falls Sie ein anderes Video nutzen wollen, ist dieses in das MJPEG-Format zu konvertieren.
 Eine Umcodierung zu MJPEG kann zum Beispiel mittels FFMPEG oder VLC-Player erfolgen. Eventuell müssen Sie die Auflösung des Videos verringern, damit die Bilder jeweils in ein UDP-Paket passen.
 
 `ffmpeg -i test.mp4 -vcodec mjpeg -q:v 10 -huffman 0 -r 10 -vf scale=720:-1 -an test.mjpeg`
-
-
 
 ## Lernaspekte des Belegs
 * Kommunikationsprotokolle
@@ -164,7 +159,6 @@ Eine Umcodierung zu MJPEG kann zum Beispiel mittels FFMPEG oder VLC-Player erfol
 * Betriebssysteme
   * Shellscripte
   * Plattformunabhängigkeit
-
 
 ## Literatur
 * Real Time Streaming Protocol (RTSP)                   [RFC 2326](http://www.ietf.org/rfc/rfc2326.txt)
