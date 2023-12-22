@@ -1,25 +1,34 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.StringWriter;
+import java.net.Socket;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.ListIterator;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+// https://github.com/tyazid/RTSP-Java-UrlConnection
+
 abstract class RtspDemo {
   static final String CRLF = "\r\n";  // Line-Ending for Internet Protocols
-  String rtspUrl = "";      //  URL from the command line:  rtsp://hostname:port/
+   URI url;
+  Socket RTSPsocket; // socket used to send/receive RTSP messages
 
-
-  public void setVideoFileName(String videoFileName) {
-    VideoFileName = videoFileName;
+  public void setUrl(String url) {
+    try {
+      this.url = new URI( url);
+    } catch (URISyntaxException e) {
+      throw new RuntimeException(e);
+    }
   }
 
-  public String getVideoFileName() {    return VideoFileName;  }
 
-  String VideoFileName;     // video file requested from the client
   int RTP_RCV_PORT;         // port where the client will receive the RTP packets
   BufferedWriter RTSPBufferedWriter;  // TCP-Stream for RTSP-Requests
   BufferedReader RTSPBufferedReader; // TCP-Stream for RTSP-Responses
@@ -27,19 +36,28 @@ abstract class RtspDemo {
   String RTSPid = "0";  // RTSP session number (given by the RTSP Server), 0: not initialized
 
   public int getFramerate() {
-    return framerate;
+    return framerate != 0 ? framerate : DEFAULT_FPS;
   }
   int framerate = 0;     // framerate of the video (given by the RTSP Server via SDP)
+  final int DEFAULT_FPS = 25; // default framerate if not available
   public double getDuration() {
-    return duration;
+    return duration != 0.0 ? duration : videoLength;
   }
   double duration = 0.0;  // duration of the video (given by the RTSP Server via SDP)
+  final static int videoLength = 112;  // => 2008 frames, Demovideo htw.mjpeg, no metadata in MJPEG
   enum State {INIT, READY, PLAYING}  // RTSP states
   State state;
   static final Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
 
 
+
   /*  *********************** Server variables  **************************** */
+  /**
+   * Get the video file name
+   * @return filename without path, e.g. htw.mjpeg
+   */
+  public String getVideoFileName() {    return VideoFileName;  }
+  String VideoFileName;     // video file requested from the client
   static int MJPEG_TYPE = 26; // RTP payload type for MJPEG video
   //static String VideoDir = "videos/"; // Directory for videos on the server
   String sdpTransportLine = "";
@@ -61,32 +79,47 @@ abstract class RtspDemo {
 
   /**
    * Constructor for Client
-   * @param RTSPBufferedReader
-   * @param RTSPBufferedWriter
-   * @param rtpRcvPort
-   * @param rtspUrl
-   * @param videoFileName
+   * @param url  RTSP-URL
+   * @param rtpRcvPort Port for RTP-Packets
    */
-  public RtspDemo(BufferedReader RTSPBufferedReader, BufferedWriter RTSPBufferedWriter,
-      int rtpRcvPort, String rtspUrl, String videoFileName) {
-    this.rtspUrl = rtspUrl;
+  public RtspDemo(URI url, int rtpRcvPort) {
+    this.url = url;
     this.RTP_RCV_PORT = rtpRcvPort;
-    this.VideoFileName = videoFileName;
-    this.RTSPBufferedReader = RTSPBufferedReader;
-    this.RTSPBufferedWriter = RTSPBufferedWriter;
     this.state = State.INIT;
+    connectServer();
   }
+
 
   /**
    * Constructor for Server
-   * @param RTSPBufferedReader
-   * @param RTSPBufferedWriter
+   * @param RTSPBufferedReader  Stream for RTSP-Requests
+   * @param RTSPBufferedWriter  Stream for RTSP-Responses
    */
   public RtspDemo(BufferedReader RTSPBufferedReader, BufferedWriter RTSPBufferedWriter) {
     this.RTSPBufferedReader = RTSPBufferedReader;
     this.RTSPBufferedWriter = RTSPBufferedWriter;
     this.state = State.INIT;
   }
+
+  /**
+   * Connect to the RTSP-Server
+   * @return Success or not
+   */
+  public boolean connectServer () {
+    try {
+      RTSPsocket = new Socket( url.getHost(), url.getPort()); // RTSP-connection
+      RTSPBufferedReader =
+          new BufferedReader(new InputStreamReader(RTSPsocket.getInputStream()));
+      RTSPBufferedWriter =
+          new BufferedWriter(new OutputStreamWriter(RTSPsocket.getOutputStream()));
+
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    return true;
+  }
+
 
   // Button handler for SETUP, PLAY, PAUSE, TEARDOWN, OPTIONS, DESCRIBE
 
@@ -126,7 +159,6 @@ abstract class RtspDemo {
   /**
    * Sends a RTSP request to the server
    * @param request_type String with request type (e.g. SETUP)
-   *
    * write Requests to the RTSPBufferedWriter-Stream
    * use logger.log() for logging the request to the console
    * end request with BufferedWriter.flush()
@@ -221,27 +253,30 @@ abstract class RtspDemo {
     * @param cl Content-Length in bytes
    * sets framerate and duration
    *
-   * @throws Exception
+   * @throws IOException in case of read error
    */
-  void parseSDP(int cl) throws Exception {
-    char[] cbuf = new char[cl];
+  void parseSDP(int cl) throws IOException {
+    char[] cBuf = new char[cl]; // number of bytes to read
     logger.log(Level.INFO, "*** Parsing Response Data...");
-    int data = RTSPBufferedReader.read(cbuf, 0, cl);
+    int data = RTSPBufferedReader.read(cBuf, 0, cl);
     logger.log(Level.INFO, "Data: " + data);
-    logger.log(Level.INFO, new String(cbuf));
+    logger.log(Level.INFO, new String(cBuf));
 
-    String[] sbuf = new String(cbuf).split(CRLF);
-    for (int i = 0; i < sbuf.length; i++) {
-      if (sbuf[i].contains("framerate")) {
-        String sfr = sbuf[i].split(":")[1];
+    framerate = 0;
+    duration = 0.0;
+
+    String[] sBuf = new String(cBuf).split(CRLF);  // get lines
+    for (String s : sBuf) {
+      if (s.contains("framerate")) {
+        String sfr = s.split(":")[1];
         framerate = Integer.parseInt(sfr);
         logger.log(Level.INFO, "framerate: " + framerate);
-      } else if (sbuf[i].contains("range:npt")) {
-        String[] sdur = sbuf[i].split("-");
+      } else if (s.contains("range:npt")) {
+        String[] sdur = s.split("-");
         if (sdur.length > 1) {
           duration = Double.parseDouble(sdur[1]);
           logger.log(Level.INFO, "duration [s]: " + duration);
-        } // else: no duration available
+        } //else duration = videoLength;      // no duration available, set demo video length
       } // else: other attributes are not recognized here
     }
     logger.log(Level.INFO, "Finished Content Reading...");
@@ -260,11 +295,11 @@ abstract class RtspDemo {
 
   /**
    * Creates a DESCRIBE response string
-   * https://www.ietf.org/rfc/rfc2327.txt
+   * <a href="https://www.ietf.org/rfc/rfc2327.txt">...</a>
    * SDP includes:
-   *    o The type of media (video, audio, etc)
-   *    o The transport protocol (RTP/UDP/IP, H.320, etc)
-   *    o The format of the media (H.261 video, MPEG video, etc)
+   *    o The type of media (video, audio, etc.)
+   *    o The transport protocol (RTP/UDP/IP, H.320, etc.)
+   *    o The format of the media (H.261 video, MPEG video, etc.)
    *    o maybe Multicast address for media
    *    o maybe Transport Port for media
    *

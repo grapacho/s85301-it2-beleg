@@ -211,12 +211,12 @@ abstract class RtpPacketDemo {
 
   void printheader(int size, byte[] data) {
     Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
-    String b = "";
+    StringBuilder b = new StringBuilder();
     for (int i = 0; i < size; i++) {
-      b += String.format("%8s", Integer.toBinaryString(data[i] & 0xFF)).replace(' ', '0');
-      b += " ";
+      b.append(String.format("%8s", Integer.toBinaryString(data[i] & 0xFF)).replace(' ', '0'));
+      b.append(" ");
     }
-    logger.log(Level.FINEST, b);
+    logger.log(Level.FINEST, b.toString());
   }
 
 

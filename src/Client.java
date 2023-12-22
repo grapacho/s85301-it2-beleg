@@ -41,28 +41,21 @@ public class Client {
   JTextField textField = new JTextField("mystream", 30);
   JTextField pufferNumber = new JTextField("50", 3);
   JProgressBar progressBuffer = new JProgressBar(0, 50);
-  JProgressBar progressPosition = new JProgressBar(0, videoLength);
+  JProgressBar progressPosition = new JProgressBar();
   JCheckBox checkBoxFec = new JCheckBox("nutze FEC");
   ButtonGroup encryptionButtons = null;
 
   int iteration = 0;  // for displaying statistics
+  Timer timerPlay; // timer used to display the frames at the correct frame rate
 
   // ******************** RTP variables: *****************************
   private static RtpHandler rtpHandler;
   static int RTP_RCV_PORT = 25000; // port where the client will receive the RTP packets
   // static int FEC_RCV_PORT = 25002; // port where the client will receive the RTP packets
-  static final int FRAME_RATE = 40;  // default frame rate
-  Timer timerPlay; // timer used to display the frames at correct frame rate
+  final static Integer JITTER_BUFFER_SIZE = 25; // size of the buffer in frames
 
   // ********************** RTSP variables ************************
-  Socket RTSPsocket;    // socket used to send/receive RTSP messages
-  static BufferedReader RTSPBufferedReader;  // input and output stream filters
-  static BufferedWriter RTSPBufferedWriter;
-  static String rtspServer;
-  static int rtspPort;
-  static String rtspUrl;
-  static String VideoFileName; // video file to request to the server
-  static int videoLength = 2800;  // Demovideo htw.mjpeg, no metadata in MJPEG
+  private static Rtsp rtsp;
   private static final Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
   private static Rtsp rtsp;
 
@@ -137,7 +130,6 @@ public class Client {
     describeButton.requestFocus();
   }
 
-
   /**
    * Initialization of the GUI
    *
@@ -152,53 +144,31 @@ public class Client {
      */
     logger.setLevel(Level.FINER);
 
-    // get server hostname/IP and RTSP port from the command line
-    String ServerHost = argv[0];
-    // TODO
-    // URL url = new URL(argv[0]);
-    int RTSP_server_port = Integer.parseInt(argv[1]);
-    InetAddress ServerIPAddr = InetAddress.getByName(ServerHost);
-    rtspPort = RTSP_server_port;
-    rtspServer = ServerHost;
-    rtspUrl = "rtsp://" + ServerHost + ":" + RTSP_server_port + "/";
-    VideoFileName = argv[2];    // get video filename to request:
-
+    URI url = new URI(argv[0]);
     rtpHandler = new RtpHandler(false);       // init RTP handler
 
     Client theClient = new Client();  // Create a Client object
 
-    theClient.textField.setText(VideoFileName);
-    if (argv.length > 3) {
-      rtpHandler.setJitterBufferStartSize( Integer.parseInt(argv[3]) ); // adjust buffer size
-      theClient.pufferNumber.setText(argv[3]);
-      logger.log(Level.FINE, "Jitter buffer size: " + Integer.parseInt(argv[3]));
-    }
-    // TODO move to RTSP
-    theClient.RTSPsocket = new Socket(ServerIPAddr, RTSP_server_port); // RTSP-connection
-    // Set input and output stream filters:
-    RTSPBufferedReader =
-        new BufferedReader(new InputStreamReader(theClient.RTSPsocket.getInputStream()));
-    RTSPBufferedWriter =
-        new BufferedWriter(new OutputStreamWriter(theClient.RTSPsocket.getOutputStream()));
-    // initialize RTSP protocol
-    rtsp = new Rtsp(RTSPBufferedReader, RTSPBufferedWriter, RTP_RCV_PORT, rtspUrl, VideoFileName);
+
+
+
+    theClient.textField.setText(url.toString());
+    rtsp = new Rtsp(url, RTP_RCV_PORT);
   }
 
 
   class setupButtonListener implements ActionListener {
     public void actionPerformed(ActionEvent e) {
       logger.log(Level.INFO, "Setup Button pressed ! ");
-      rtsp.setVideoFileName(textField.getText());
-      rtpHandler.setJitterBufferStartSize(Integer.parseInt(pufferNumber.getText()));
+      rtsp.setUrl( textField.getText() ) ;
 
       if (rtsp.setup()) {
+        // set jitter buffer size
+        rtpHandler.setJitterBufferStartSize(Integer.parseInt(pufferNumber.getText()));
         rtpHandler.startReceiver(RTP_RCV_PORT);
         rtpHandler.setFecDecryptionEnabled(checkBoxFec.isSelected());
         // Init the play timer
-        int timerDelay = FRAME_RATE; // use default delay
-        if (rtsp.getFramerate() != 0) { // if information available, use that
-          timerDelay = 1000 / rtsp.getFramerate(); // delay in ms
-        }
+        int timerDelay = 1000 / rtsp.getFramerate(); // delay in ms, default 40 ms for 25 fps
         timerPlay = new Timer(timerDelay, new timerPlayListener());
         timerPlay.setCoalesce(true); // combines events
         statusLabel.setText("READY");
@@ -247,6 +217,7 @@ public class Client {
         rtpHandler.reset();
         rtpHandler.stopReceiver();
         timerPlay.stop();
+        //TODO RTPs löschen für Statistik
       }
     }
   }
@@ -263,14 +234,10 @@ public class Client {
   class describeButtonListener implements ActionListener {
     public void actionPerformed(ActionEvent e) {
       logger.log(Level.INFO, "Describe Button pressed ! ");
-      rtsp.setVideoFileName( textField.getText() );
+      rtsp.setUrl( textField.getText() );
       rtsp.describe();
-      if (rtsp.getDuration() > 1) {
-        // set progress bar from duration and framerate from server data
-        progressPosition.setMaximum((int)rtsp.getDuration() * rtsp.getFramerate() );
-      } else {
-        progressPosition.setMaximum(videoLength);  // Demovideo htw.mjpeg, no metadata in MJPEG
-      }
+      // set progress bar from duration and framerate from server data
+      progressPosition.setMaximum((int)rtsp.getDuration() * rtsp.getFramerate() );
       mainPanel.getRootPane().setDefaultButton(setupButton);
       setupButton.requestFocus();
     }

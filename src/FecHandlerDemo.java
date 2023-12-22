@@ -120,7 +120,9 @@ abstract class FecHandlerDemo {
   public void setFecGroupSize(int size) {
     fecGroupSize = size;
   }
-
+  public int getFecGroupSize() {
+    return fecGroupSize;
+  }
   // *************** Receiver PUT *****************************************************************
 
   /**

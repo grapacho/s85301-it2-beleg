@@ -19,8 +19,7 @@ import javax.imageio.ImageIO;
 import com.github.sarxos.webcam.Webcam;
 
 public class Server extends JFrame implements ActionListener, ChangeListener {
-  // ************* RTP variables ********************
-  DatagramSocket RTPsocket; // socket to be used to send and receive UDP packets
+
   InetAddress ClientIPAddr; // Client IP address
   static int startGroupSize = 2;
   RtpHandler rtpHandler;
@@ -61,7 +60,6 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
   // input and output stream filters
   static BufferedReader RTSPBufferedReader;
   static BufferedWriter RTSPBufferedWriter;
-  private static boolean connection;
   static final Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
 
   public Server() {
@@ -201,7 +199,7 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
     theServer.setSize(500, 200);
     theServer.setVisible(true);
 
-    connection = false;
+    boolean connection = false;
     int request_type = 0;
 
     while (true) {   // loop to handle RTSP requests
@@ -395,8 +393,8 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
 
   /** Get the metadata from a video file.
    *
-   *  If no metadata is available, all fields are zero-initialized with
-   *  exception of the framerate. Because the framerate is strongly required,
+   *  If no metadata is available, all fields are zero-initialized except for
+   *  the framerate. Because the framerate is strongly required,
    *  it is set to a default value.
    *
    *  @param filename Name of the video file
@@ -430,7 +428,6 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
   public static byte[] toByteArray(BufferedImage bi, String format) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     ImageIO.write(bi, format, baos);
-    byte[] bytes = baos.toByteArray();
-    return bytes;
+    return baos.toByteArray();
   }
 }

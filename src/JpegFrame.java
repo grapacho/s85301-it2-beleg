@@ -285,7 +285,7 @@ public class JpegFrame {
    * @param frames
    * @return
    */
-  private static JpegFrame combineToOneFrame(final List<JpegFrame> frames) {
+  public static JpegFrame combineToOneFrame(final List<JpegFrame> frames) {
     if (frames == null || frames.isEmpty()) {
       return null; // Nichts zu kombinieren.
     }
@@ -306,7 +306,6 @@ public class JpegFrame {
     }
 
     result.setPayload(jpeg);
-    jpeg = null;
     return result;
   }
 
