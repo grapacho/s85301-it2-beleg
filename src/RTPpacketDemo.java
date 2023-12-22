@@ -1,3 +1,4 @@
+import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -50,19 +51,19 @@ abstract class RTPpacketDemo {
    * @param data
    * @param data_length
    */
-  public RTPpacketDemo(int PType, int Framenb, int Time, byte[] data, int data_length) {
+  public RTPpacketDemo(int PType, int Framenb, int Time, int Mar, byte[] data, int data_length) {
     // fill by default header fields:
     Version = 2;
     Padding = 0;
     Extension = 0;
     CC = 0;
-    Marker = 1;
     Ssrc = 0;
 
     // fill changing header fields:
     SequenceNumber = Framenb;
     TimeStamp = Time;
     PayloadType = PType;
+    Marker = Mar;
 
     // build the header bistream:
     // --------------------------
@@ -91,7 +92,6 @@ abstract class RTPpacketDemo {
     Padding = 0;
     Extension = 0;
     CC = 0;
-    Marker = 0;
     Ssrc = 0;
 
     // check if total packet size is lower than the header size
@@ -107,6 +107,7 @@ abstract class RTPpacketDemo {
 
       // interpret the changing fields of the header:
       PayloadType = header[1] & 127;
+      Marker = header[1] >> 7 & 1;
       SequenceNumber = unsigned_int(header[3]) + 256 * unsigned_int(header[2]);
       TimeStamp =
           unsigned_int(header[7])
@@ -168,26 +169,25 @@ abstract class RTPpacketDemo {
   }
 
 
-
-
-  // --------------------------
-  // gettimestamp
-  // --------------------------
-
   public int gettimestamp() {
     return (TimeStamp);
   }
 
-  // --------------------------
-  // getsequencenumber
-  // --------------------------
   public int getsequencenumber() {
     return (SequenceNumber);
   }
 
-  // --------------------------
-  // getpayloadtype
-  // --------------------------
+  public int getMarker() {
+    return Marker;
+  }
+
+  public int getJpegOffset() {
+    //byteArrayToInt(Arrays.copyOfRange(payload, 1, 4)); // from JpegFrame.java
+    ByteBuffer wrapped = ByteBuffer.wrap(payload,0,4);
+    wrapped.put(0, (byte) 0);
+    return wrapped.getInt();
+  }
+
   public int getpayloadtype() {
     return (PayloadType);
   }
@@ -216,7 +216,7 @@ abstract class RTPpacketDemo {
       b += String.format("%8s", Integer.toBinaryString(data[i] & 0xFF)).replace(' ', '0');
       b += " ";
     }
-    logger.log(Level.FINER, b);
+    logger.log(Level.FINEST, b);
   }
 
 

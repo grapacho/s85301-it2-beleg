@@ -2,16 +2,47 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * Kapselt die JPEG-Logik zum Kodierung und Dekodieren der JPEG-Bilder gemäß RFC-2435.
+ * Kapselt die JPEG-Logik zum Kodieren und Dekodieren der JPEG-Bilder gemäß RFC-2435.
  *
  * @author Elisa Zschorlich (s70342)
  */
+
+
+/*
+   JPEG header
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   | Type-specific |              Fragment Offset                  |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |      Type     |       Q       |     Width     |     Height    |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+    Restart Marker header
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |       Restart Interval        |F|L|       Restart Count       |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+    Quantization Table header
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |      MBZ      |   Precision   |             Length            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    Quantization Table Data                    |
+   |                              ...                              |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+
 public class JpegFrame {
-
   public static final int PAYLOAD_TYPE_ID = 26;
-
+  public static int MTU = 1300;
   /* JPEG-Marker. */
   public static final byte MARKER_TAG_START = (byte) 0xFF;
   public static final byte[] SOF0_MARKER = new byte[] { MARKER_TAG_START, (byte) 0xC0 };
@@ -101,6 +132,8 @@ public class JpegFrame {
   private boolean dri;
   private int restartInterval;
   private byte[] payload;
+
+  static final Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
 
   private JpegFrame() {
   }
@@ -252,7 +285,7 @@ public class JpegFrame {
    * @param frames
    * @return
    */
-  public static JpegFrame combineToOneFrame(final List<JpegFrame> frames) {
+  private static JpegFrame combineToOneFrame(final List<JpegFrame> frames) {
     if (frames == null || frames.isEmpty()) {
       return null; // Nichts zu kombinieren.
     }
@@ -278,15 +311,16 @@ public class JpegFrame {
   }
 
   /**
-   * Liefert ein Byte-Array, welches s�mtliche Header aus RFC-2435 (RFC-Header, Restart-Header sowie Header f�r die Quantisierungstabellen) enth�lt, die
-   * Quantisierungstabellen und den eigentlichen JPEG-Payload.
+   * Liefert ein Byte-Array, mit Headern aus RFC-2435
+   * * RFC-Header, Restart-Header, Quantisierungs-Header
+   * * Quantisierungstabellen und
+   * * JPEG-Payload
    *
    * @return Array von bytes
    */
   public byte[] getAsRfc2435Bytes() {
-    int idx = 0;
-    // Offset ist in diesem Fall immer null
-    int headerLength = 8;
+    int idx = 0; // Offset ist in diesem Fall immer null
+    int headerLength = 8;     // Headerlänge 8 oder 12 Byte
     if (this.dri) {
       headerLength = headerLength + 4;
     }
@@ -294,61 +328,63 @@ public class JpegFrame {
     if (nb_qtables > 0 && offset == 0) {
       headerLength = headerLength + 4 + (nb_qtables * 64);
     }
-    headerLength = headerLength + payload.length;
-    final byte[] rfcHeader = new byte[headerLength];
-    idx++;
-    rfcHeader[idx] = 0; // type-specfic
-    rfcHeader[idx] = (byte) (offset >> 16);
-    idx++;
-    rfcHeader[idx] = (byte) (offset >> 8);
-    idx++;
-    rfcHeader[idx] = (byte) (offset & 0xff);
-    idx++;
-    rfcHeader[idx] = (byte) (getType() & 0xff);
-    idx++; // Type
-    rfcHeader[idx] = (byte) (255 & 0xff);
-    idx++; // Q
-    rfcHeader[idx] = (byte) (((width + 7) & ~7) >> 3);
-    idx++; // Breite Aufgerundet auf 8ter Kompliment und geteilt durch 8
-    rfcHeader[idx] = (byte) (((height + 7) & ~7) >> 3);
-    idx++; // H�he Aufgerundet auf 8ter Kompliment und geteilt durch 8
+    final byte[] rfcHeader = new byte[headerLength + payload.length];
+    rfcHeader[idx++] = 0; // type-specfic
+    rfcHeader[idx++] = (byte) (offset >> 16);
+    rfcHeader[idx++] = (byte) (offset >> 8);
+    rfcHeader[idx++] = (byte) (offset & 0xff);
+    rfcHeader[idx++] = (byte) (getType() & 0xff);  // Type
+    rfcHeader[idx++] = (byte) (255 & 0xff);        // Q
+    // Breite aufgerundet auf 8ter Kompliment und geteilt durch 8
+    rfcHeader[idx++] = (byte) (((width + 7) & ~7) >> 3);
+    // Höhe aufgerundet auf 8ter Kompliment und geteilt durch 8
+    rfcHeader[idx++] = (byte) (((height + 7) & ~7) >> 3);
 
-    // wenn DRI, dass restartintervall hinzuf�gen
+    // wenn DRI, dass Restartintervall hinzufügen
     if (this.dri) {
-      rfcHeader[idx] = (byte) (this.restartInterval >> 8);
-      idx++;
-      rfcHeader[idx] = (byte) (this.restartInterval & 0xff);
-      idx++;
-      rfcHeader[idx] = (byte) (0xff);
-      idx++;
-      rfcHeader[idx] = (byte) (0xff);
-      idx++;
+      rfcHeader[idx++] = (byte) (this.restartInterval >> 8);
+      rfcHeader[idx++] = (byte) (this.restartInterval & 0xff);
+      rfcHeader[idx++] = (byte) (0xff);
+      rfcHeader[idx++] = (byte) (0xff);
     }
-
     // wenn Quantisationstabellen vorhanden sind, dann alle hinzufügen
     if (offset == 0 && nb_qtables != 0) {
-      rfcHeader[idx] = 0;
-      idx++;
-      rfcHeader[idx] = 0;
-      idx++;
-      rfcHeader[idx] = (byte) (64 * nb_qtables >> 8);
-      idx++;
-      rfcHeader[idx] = (byte) (64 * nb_qtables & 0xff);
-      idx++;
+      rfcHeader[idx++] = 0;
+      rfcHeader[idx++] = 0;
+      rfcHeader[idx++] = (byte) (64 * nb_qtables >> 8);
+      rfcHeader[idx++] = (byte) (64 * nb_qtables & 0xff);
 
       for (int i = 0; i < nb_qtables; i++) {
         System.arraycopy(this.qTables, 65 * i, rfcHeader, idx, 64);
         idx += 64;
       }
     }
-
-    // Zuletzt JPEG-Payload
-    System.arraycopy(payload, 0, rfcHeader, idx, payload.length);
-
-    return rfcHeader;
+    // Fragmentlänge berechnen im Fall des letzten Pakets
+    int length = (offset+MTU > payload.length) ? payload.length-offset : MTU;
+   // JPEG-Payload-Fragment hinzufügen
+    System.arraycopy(payload, offset, rfcHeader, idx, length);
+    logger.log(Level.FINEST, "RFC-2435 Header: " + idx  + " Payload: " + length + " Bytes");
+    return truncate(rfcHeader, idx + length);
   }
 
-  public byte[] getPayload() {
+
+  /**
+   * Liefert Liste mit RTP-Paketen, welche die RTP-Payload gemäß RFC-2435 enthalten.
+   *
+   * @return Liste der RTP-Pakete
+   */
+  public List<byte[]> getRtpPayload() {
+    List<byte[]> rtpPayload = new ArrayList<>();  // Liste der Pakete erstellen
+    offset = 0;
+    do {
+      rtpPayload.add( getAsRfc2435Bytes() );
+      offset += MTU;
+    } while (offset < payload.length);
+    return rtpPayload;
+  }
+
+
+  private byte[] getPayload() {
     return payload;
   }
 
@@ -541,7 +577,7 @@ public class JpegFrame {
     } else if (bytes.length == 1) {
       return bytes[0] & 0xFF;
     } else {
-      throw new UnsupportedOperationException("Biser nicht inplementiert, da nicht unterstützt.");
+      throw new UnsupportedOperationException("Bisher nicht implementiert, da nicht unterstützt.");
     }
   }
 
@@ -569,4 +605,16 @@ public class JpegFrame {
     }
     return result;
   }
+
+  public static byte[] truncate(byte[] array, int newLength) {
+    if (array.length < newLength) {
+      return array;
+    } else {
+      byte[] truncated = new byte[newLength];
+      System.arraycopy(array, 0, truncated, 0, newLength);
+
+      return truncated;
+    }
+  }
+
 }

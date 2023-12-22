@@ -19,41 +19,30 @@ import javax.imageio.ImageIO;
 import com.github.sarxos.webcam.Webcam;
 
 public class Server extends JFrame implements ActionListener, ChangeListener {
-
-  private static boolean connection;
-  // RTP variables:
-  // ----------------
+  // ************* RTP variables ********************
   DatagramSocket RTPsocket; // socket to be used to send and receive UDP packets
-  DatagramPacket senddp; // UDP packet containing the video frames
   InetAddress ClientIPAddr; // Client IP address
   static int startGroupSize = 2;
   RtpHandler rtpHandler;
   Rtsp rtsp = null;
-  // Channel errors
-  static private double lossRate = 0.0;
-  Random random = new Random(123456); // fixed seed for debugging
-  int dropCounter; // Nr. of dropped media packets
+  static private double lossRate = 0.0;  // Channel errors
 
-  // GUI:
-  // ----------------
+  // **************** GUI **************************
   JLabel label;
   static JLabel stateLabel;
   private ButtonGroup encryptionButtons = null;
 
-  // Video variables:
-  // ----------------
+  // **************** Video variables: ***************
   static int imagenb = 0; // image nb of the image currently transmitted
   VideoReader video; // VideoStream object used to access video frames
   static String VideoDir = "videos/"; // Directory for videos on the server
   static int DEFAULT_FRAME_PERIOD = 40; // Frame period of the video to stream, in ms
+  //static int DEFAULT_FRAME_PERIOD = 1000; // Debugging
   public VideoMetadata videoMeta = null;
   static Webcam webcam;
-
   Timer timer; // timer used to send the images at the video frame rate
-  // byte[] buf; // buffer used to store the images to send to the client
 
-  // RTSP variables
-  // ----------------
+  // **************** RTSP variables *****
   // rtsp states
   static final int INIT = 0;
   static final int READY = 1;
@@ -77,16 +66,11 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
 
   public Server() {
     super("Server"); // init Frame
-    //Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
-
-    // init RTP socket and FEC
-    rtpHandler = new RtpHandler(startGroupSize);
-
+    rtpHandler = new RtpHandler(startGroupSize); // init RTP socket and FEC
     // Handler to close the main window
     addWindowListener(
         new WindowAdapter() {
           public void windowClosing(WindowEvent e) {
-            // stop the timer and exit
             timer.stop();
             System.exit(0);
           }
@@ -130,14 +114,7 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
     mainPanel.add(dropRate, gbc);
 
     initGuiEncryption(mainPanel);
-
     getContentPane().add(mainPanel, BorderLayout.CENTER);
-
-    try {
-      RTPsocket = new DatagramSocket();
-    } catch (Exception e) {
-      logger.log(Level.SEVERE, "Exception caught: " + e);
-    }
   }
 
   /**
@@ -247,7 +224,7 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
           state = READY;
           stateLabel.setText("READY");
           logger.log(Level.INFO, "New RTSP state: READY");
-
+          // TODO
           if (theServer.videoMeta == null) {
             theServer.videoMeta = Server.getVideoMetadata(theServer.rtsp.getVideoFileName() );
           }
@@ -341,14 +318,13 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
 
 
   /**
-   * Hander for timer
+   * Handler for timer, sends the next frame to the client.
    *
    * @param e ActionEvent
    */
   public void actionPerformed(ActionEvent e) {
-    //Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     imagenb++; // image counter
-    byte[] packet_bits;
+    byte[] jpegFrame = null;
 
     try {
       if (rtsp.getVideoFileName().endsWith("webcam")) {
@@ -357,52 +333,21 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
       } else {
         jpegFrame = video.readNextImage();  // get next frame from file
       }
-
-      if (jpegFrame != null) {
-        logger.log(Level.FINE, "Image size: " + jpegFrame.length);
-
-        // send the packet as a DatagramPacket over the UDP socket
-        senddp = new DatagramPacket(packet_bits, packet_bits.length, ClientIPAddr, rtsp.getRTP_dest_port() );
-
-        sendPacketWithError(senddp, false); // Send with packet loss
-
-        if (rtpHandler.isFecPacketAvailable()) {
-          logger.log(Level.FINE, "FEC-Encoder ready...");
-          byte[] fecPacket = rtpHandler.createFecPacket();
-          // send to the FEC dest_port
-          senddp = new DatagramPacket(fecPacket, fecPacket.length, ClientIPAddr, rtsp.getFEC_dest_port() );
-          sendPacketWithError(senddp, true);
-        }
-
-        // update GUI
-        label.setText("Send frame #" + imagenb);
-      } else timer.stop();
     } catch (Exception ex) {
       logger.log(Level.SEVERE, "Exception caught: " + ex);
       ex.printStackTrace();
-      System.exit(0);
     }
-  }
 
-  /**
-   * @param senddp Datagram to send
-   * @throws Exception Throws all
-   */
-  private void sendPacketWithError(DatagramPacket senddp, boolean fec) throws Exception {
-    //Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
-    String label;
-    if (fec) label = " fec ";
-    else label = " media ";
-    if (random.nextDouble() > lossRate) {
-      logger.log(Level.FINE, "Send frame: " + imagenb + label);
-      RTPsocket.send(senddp);
+    if (jpegFrame != null) {
+      logger.log(Level.FINE, "image nr.:" + imagenb + " size: " + jpegFrame.length);
+      label.setText("Send frame #" + imagenb);   // update GUI
+
+      rtpHandler.sendJpeg(jpegFrame, videoMeta.getFramerate(), ClientIPAddr,
+          rtsp.getRTP_dest_port(), lossRate);
     } else {
-      System.err.println("Dropped frame: " + imagenb + label);
-      if (!fec) dropCounter++;
+      timer.stop();
     }
-    // System.out.println("Drop count media packets: " +  dropCounter);
   }
-
 
 
   private void initGuiEncryption(JPanel panel) {

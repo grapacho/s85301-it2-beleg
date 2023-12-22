@@ -97,7 +97,7 @@ public class FECpacket extends RTPpacket {
    * @param snBase base for sequence nr.
    */
   public FECpacket(int PType, int Framenb, int Time, int maxGroupSize, int snBase) {
-    super(PType, Framenb, Time, new byte[0], 0);
+    super(PType, Framenb, Time, 1, new byte[0], 0);
     setFecHeader(maxGroupSize, snBase);
     setUlpLevelHeader(0,0,maxGroupSize);
   }
@@ -340,7 +340,7 @@ public class FECpacket extends RTPpacket {
    */
   public RTPpacket getLostRtp(int snr) {
     // TODO get the correct SNr
-    return new RTPpacket(ptRecovery, snr  ,tsRecovery, payload, lengthRecovery);
+    return new RTPpacket(ptRecovery, snr  ,tsRecovery, M, payload, lengthRecovery);
   }
 
 

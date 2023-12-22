@@ -535,7 +535,7 @@ public class SrtpHandler {
 
     public static boolean testPacketProcessing(SrtpHandler sender, SrtpHandler receiver) {
         byte[] data = new byte[1024];
-        RTPpacket packet = new RTPpacket(26, 1234, 9000, data, data.length);
+        RTPpacket packet = new RTPpacket(26, 1234, 9000, 1, data, data.length);
         byte[] srtp = sender.transformToSrtp(packet);
         RTPpacket received = receiver.retrieveFromSrtp(srtp);
         byte[] receivedPayload = received.getpayload();

@@ -1,8 +1,19 @@
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 class FECpacketTest {
+private static FECpacket fecPacket;
+
+  @BeforeAll
+  public static void initRTP() {
+    fecPacket = new FECpacket(26, 42, 0, 48, 0);
+  }
+  @AfterAll
+  static void afterAll() {
+  }
 
   @Test
   void setFecHeader() {}
@@ -15,4 +26,8 @@ class FECpacketTest {
 
   @Test
   void addRtp() {}
+
+
+
+
 }

@@ -1,8 +1,14 @@
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,7 +43,10 @@ public class RtpHandler {
 
     // server side
     private int currentSeqNb = 0; // sequence number of current frame
+    private int currentTS = 0;    // timestamp of a set of frames
     private boolean fecEncodingEnabled = false; // server side
+    Random random = new Random(123456); // Channel loss - fixed seed for debugging
+    DatagramSocket RTPsocket; // socket to be used to send and receive UDP packets
 
     // client side
     private boolean fecDecodingEnabled = false; // client side
@@ -46,6 +55,7 @@ public class RtpHandler {
     private HashMap<Integer, List<Integer>> sameTimestamps = null;
     private ReceptionStatistic statistics = null;
     private Boolean isServer = false;
+    static final Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
 
     /**
      * Create a new RtpHandler as server.
@@ -58,6 +68,12 @@ public class RtpHandler {
             fecEncodingEnabled = true;
             fecHandler = new FecHandler(fecGroupSize);
         }
+        try {
+            RTPsocket = new DatagramSocket();
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Exception caught: " + e);
+        }
+
     }
 
     /**
@@ -85,6 +101,9 @@ public class RtpHandler {
             statistics = new ReceptionStatistic();
         }
     }
+
+    // ********************************** Server side ***************************************
+
 
     /**
      * Retrieve the current FEC packet, if it is available.
@@ -148,53 +167,110 @@ public class RtpHandler {
      * @param jpegImage JPEG image as byte array
      * @return RTP packet as byte array
      */
-    public byte[] jpegToRtpPacket(final byte[] jpegImage, int framerate) {
-        Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
-
+    public List<RTPpacket> jpegToRtpPackets(final byte[] jpegImage, int framerate) {
         byte[] image = null;
+
         switch (encryptionMode) {
-        case JPEG:
-            image = jpegEncryptionHandler.encrypt(jpegImage);
-            break;
-        case JPEG_ATTACK:
-        case SRTP:
-        default:
-            image = jpegImage;
-            break;
+            case JPEG:
+                image = jpegEncryptionHandler.encrypt(jpegImage);
+                break;
+            case JPEG_ATTACK:
+            case SRTP:
+            default:
+                image = jpegImage;
+                break;
+        }
+        JpegFrame frame = JpegFrame.getFromJpegBytes(image); // convert JPEG to RTP payload
+
+        List<RTPpacket> rtpPackets = new ArrayList<>();
+        currentTS += (90000 / framerate); // TS is the same for all fragments
+        int Mark = 0; // Marker bit is 0 for all fragments except the last one
+
+        // iterieren über die JPEG-Fragmente und RTPs bauen
+        ListIterator<byte[]> iter = frame.getRtpPayload().listIterator();
+        while (iter.hasNext()) {
+            byte[] frag = iter.next();
+            if (!iter.hasNext()) {
+                Mark = 1; // last segment -> set Marker bit
+            }
+            currentSeqNb++;
+
+            // Build an RTPpacket object containing the image
+            // time has to be in scale with 90000 Hz (RFC 2435, 3.)
+            RTPpacket packet = new RTPpacket(
+                RTP_PAYLOAD_JPEG, currentSeqNb, currentTS, Mark, frag, frag.length);
+
+            rtpPackets.add(packet);
         }
 
-        byte[] payload;
-        JpegFrame frame = JpegFrame.getFromJpegBytes(image);
-        payload = frame.getAsRfc2435Bytes();
+        return rtpPackets;
+    }
 
-        currentSeqNb++;
+    public void sendJpeg(final byte[] jpegImage, int framerate, InetAddress clientIp, int clientPort, double lossRate) {
+        List<RTPpacket> rtpPackets;    // fragmented RTP packets
+        DatagramPacket sendDp;      // UDP packet containing the video frames
 
-        // Build an RTPpacket object containing the image
-        // time has to be in scale with 90000 Hz (RFC 2435, 3.)
-        RTPpacket packet = new RTPpacket(
-                RTP_PAYLOAD_JPEG, currentSeqNb,
-                currentSeqNb * (90000 / framerate),
-                payload, payload.length);
+        rtpPackets = jpegToRtpPackets(jpegImage, framerate); // gets the fragmented RTP packets
 
-        if (fecEncodingEnabled) {
-            fecHandler.setRtp(packet);
+        for (RTPpacket rtpPacket : rtpPackets) {    // Liste der RTP-Pakete
+
+            byte[] packetData;
+            if (encryptionMode == EncryptionMode.SRTP) {
+                packetData = srtpHandler.transformToSrtp(rtpPacket);
+            } else {
+                packetData = rtpPacket.getpacket();
+            }
+
+            sendDp = new DatagramPacket(packetData, packetData.length, clientIp, clientPort);
+            sendPacketWithError(sendDp,lossRate, false); // Send with packet loss
+
+            if (fecEncodingEnabled) fecHandler.setRtp(rtpPacket);
+            if (isFecPacketAvailable()) {
+                logger.log(Level.FINE, "FEC-Encoder ready...");
+                byte[] fecPacket = createFecPacket();
+                // send to the FEC dest_port
+                sendDp = new DatagramPacket(fecPacket, fecPacket.length, clientIp, clientPort);
+                sendPacketWithError(sendDp, lossRate, true);
+            }
         }
+    }
 
-        byte[] packetData = null;
-        switch (encryptionMode) {
-        case SRTP:
-            packetData = srtpHandler.transformToSrtp(packet);
-            break;
-        case JPEG:
-        case JPEG_ATTACK:
-        default:
-            break;
-        }
 
-        if (packetData == null) {
-            packetData = packet.getpacket();
+    /**
+     * @param senddp Datagram to send
+     */
+    private void sendPacketWithError(DatagramPacket senddp, double lossRate, boolean fec) {
+        String label;
+        if (fec) label = " fec ";
+        else label = " media ";
+        if (random.nextDouble() > lossRate) {
+            logger.log(Level.FINE, "Send frame: " + label + " size: " + senddp.getLength());
+          try {
+            RTPsocket.send(senddp);
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        } else {
+            logger.log(Level.INFO, "Dropped frame: " + label);
+            //if (!fec) dropCounter++;
         }
-        return packetData;
+    }
+
+
+
+
+    // ********************************** Client side ***************************************
+
+    /**
+     * Get statistic values of the reception of the packets.
+     *
+     * @return Object with statistic values
+     */
+    public ReceptionStatistic getReceptionStatistic() {
+        // update values which are used internally and that are not just statistic
+        statistics.playbackIndex = playbackIndex;
+
+        return statistics;
     }
 
     /**
