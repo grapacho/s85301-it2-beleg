@@ -22,9 +22,9 @@ Die bereitgestellten Kassen mit der Endung `Demo` sind abstrakte Klassen, die no
 ### Klassen für Server und Client
 * [RtspDemo](src/RtspDemo.java): Implementierung des RTSP-Protokolls für Client und Server
 * [RtpHandler](src/RtpHandler.java): Verarbeitung von RTP-Paketen
-* [RTPpacketDemo](src/RTPpacketDemo.java): Funktionalität zur Unterstützung von RTP-Paketen
+* [RtpPacketDemo](src/RtpPacketDemo.java): Funktionalität zur Unterstützung von RTP-Paketen
 * [FecHandlerDemo](src/FecHandlerDemo.java): Unterstützung der Fehlerkorrektur mittels FEC
-* [FECpacket](src/FECpacket.java): Erweiterung der RTP-Klasse mit FEC-Funktionalität
+* [FecPacket](src/FECpacket.java): Erweiterung der RTP-Klasse mit FEC-Funktionalität
 * [VideoMetadata](VideoMetadata.java): Video-Metadaten wie Framerate und Abspieldauer
 * [JpegFrame](src/JpegFrame): Codierung/Decodierung von JPEG-Bildern gemäß RFC-2435
 * [SrtpHandler](src/SrtpHandler.java): Verschlüsselung von RTP-Paketen

@@ -2,7 +2,7 @@ import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-abstract class RTPpacketDemo {
+abstract class RtpPacketDemo {
   /*
     0                   1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -51,7 +51,7 @@ abstract class RTPpacketDemo {
    * @param data
    * @param data_length
    */
-  public RTPpacketDemo(int PType, int Framenb, int Time, int Mar, byte[] data, int data_length) {
+  public RtpPacketDemo(int PType, int Framenb, int Time, int Mar, byte[] data, int data_length) {
     // fill by default header fields:
     Version = 2;
     Padding = 0;
@@ -86,7 +86,7 @@ abstract class RTPpacketDemo {
    * @param packet
    * @param packet_size
    */
-  public RTPpacketDemo(byte[] packet, int packet_size) {
+  public RtpPacketDemo(byte[] packet, int packet_size) {
     // fill default fields:
     Version = 2;
     Padding = 0;

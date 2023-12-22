@@ -20,6 +20,11 @@ import java.util.logging.Logger;
  * @author Emanuel Günther
  */
 public class RtpHandler {
+
+    public void setJitterBufferStartSize(int jitterBufferStartSize) {
+        this.jitterBufferStartSize = jitterBufferStartSize;
+    }
+
     public enum EncryptionMode {
         NONE,
         SRTP,
@@ -46,14 +51,25 @@ public class RtpHandler {
     private int currentTS = 0;    // timestamp of a set of frames
     private boolean fecEncodingEnabled = false; // server side
     Random random = new Random(123456); // Channel loss - fixed seed for debugging
+    int dropCounter = 0;
     DatagramSocket RTPsocket; // socket to be used to send and receive UDP packets
 
     // client side
     private boolean fecDecodingEnabled = false; // client side
-    private HashMap<Integer, RTPpacket> mediaPackets = null;
-    private int playbackIndex = -1;
+    private HashMap<Integer, RtpPacket> mediaPackets = null;
+    private int playbackIndex = -1;  // iteration index fo rtps for playback
+    private int tsReceive;           // Timestamp of last received media packet
+    private int tsIndex;            // Timestamp index for rtps for playback
+    private int tsStart;            // Timestamp start for rtps for playback
+    private int tsAdd = 0;          // Timestamp add for rtps for playback
+    private int jitterBufferStartSize = 25;      // size of the input buffer => start delay
+    //private int jitterBufferSize;
     private HashMap<Integer, List<Integer>> sameTimestamps = null;
+    private HashMap<Integer, Integer> firstRtp= null; // first RTP of a jpeg-frame
+    private HashMap<Integer, Integer> lastRtp= null; // last RTP of a jpeg-frame
     private ReceptionStatistic statistics = null;
+
+
     private Boolean isServer = false;
     static final Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
 
@@ -87,13 +103,16 @@ public class RtpHandler {
         fecHandler = new FecHandler(useFec);
         mediaPackets = new HashMap<>();
         sameTimestamps = new HashMap<>();
+        firstRtp = new HashMap<>();
+        lastRtp = new HashMap<>();
         statistics = new ReceptionStatistic();
     }
 
     public void reset() {
         currentSeqNb = 0;
         //fecHandler.reset();
-        playbackIndex = -1;
+        playbackIndex = -1;  // Client
+        dropCounter = 0;
 
         if (!isServer) {
             //mediaPackets.clear();
@@ -120,7 +139,7 @@ public class RtpHandler {
 
         switch (encryptionMode) {
         case SRTP:
-            encryptedPacket = srtpHandler.transformToSrtp(new RTPpacket(fecPacket, fecPacket.length));
+            encryptedPacket = srtpHandler.transformToSrtp(new RtpPacket(fecPacket, fecPacket.length));
             if (encryptedPacket != null) {
                 fecPacket = encryptedPacket;
             }
@@ -134,17 +153,6 @@ public class RtpHandler {
         return fecPacket;
     }
 
-    /**
-     * Get statistic values of the reception of the packets.
-     *
-     * @return Object with statistic values
-     */
-    public ReceptionStatistic getReceptionStatistic() {
-        // update values which are used internally and that are not just statistic
-        statistics.playbackIndex = playbackIndex;
-
-        return statistics;
-    }
 
     /**
      * Check for the availability of an FEC packet.
@@ -167,7 +175,7 @@ public class RtpHandler {
      * @param jpegImage JPEG image as byte array
      * @return RTP packet as byte array
      */
-    public List<RTPpacket> jpegToRtpPackets(final byte[] jpegImage, int framerate) {
+    public List<RtpPacket> jpegToRtpPackets(final byte[] jpegImage, int framerate) {
         byte[] image = null;
 
         switch (encryptionMode) {
@@ -182,7 +190,7 @@ public class RtpHandler {
         }
         JpegFrame frame = JpegFrame.getFromJpegBytes(image); // convert JPEG to RTP payload
 
-        List<RTPpacket> rtpPackets = new ArrayList<>();
+        List<RtpPacket> rtpPackets = new ArrayList<>();
         currentTS += (90000 / framerate); // TS is the same for all fragments
         int Mark = 0; // Marker bit is 0 for all fragments except the last one
 
@@ -197,7 +205,7 @@ public class RtpHandler {
 
             // Build an RTPpacket object containing the image
             // time has to be in scale with 90000 Hz (RFC 2435, 3.)
-            RTPpacket packet = new RTPpacket(
+            RtpPacket packet = new RtpPacket(
                 RTP_PAYLOAD_JPEG, currentSeqNb, currentTS, Mark, frag, frag.length);
 
             rtpPackets.add(packet);
@@ -207,12 +215,12 @@ public class RtpHandler {
     }
 
     public void sendJpeg(final byte[] jpegImage, int framerate, InetAddress clientIp, int clientPort, double lossRate) {
-        List<RTPpacket> rtpPackets;    // fragmented RTP packets
+        List<RtpPacket> rtpPackets;    // fragmented RTP packets
         DatagramPacket sendDp;      // UDP packet containing the video frames
 
         rtpPackets = jpegToRtpPackets(jpegImage, framerate); // gets the fragmented RTP packets
 
-        for (RTPpacket rtpPacket : rtpPackets) {    // Liste der RTP-Pakete
+        for (RtpPacket rtpPacket : rtpPackets) {    // Liste der RTP-Pakete
 
             byte[] packetData;
             if (encryptionMode == EncryptionMode.SRTP) {
@@ -251,8 +259,8 @@ public class RtpHandler {
             throw new RuntimeException(e);
           }
         } else {
-            logger.log(Level.INFO, "Dropped frame: " + label);
-            //if (!fec) dropCounter++;
+            if (!fec) dropCounter++;
+            logger.log(Level.INFO, "Dropped frame: " + label + "Counter: " + dropCounter);
         }
     }
 
@@ -282,14 +290,23 @@ public class RtpHandler {
      * @return Image as byte array
      */
     public byte[] nextPlaybackImage() {
-        Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
-        statistics.requestedFrames++;
-        playbackIndex++;
-
-        ArrayList<RTPpacket> packetList = packetsForNextImage();
-        if (packetList == null) {
+        // Check if jitter buffer is filled
+        if (tsReceive <= tsStart + jitterBufferStartSize * tsAdd ) {
+            logger.log(Level.FINE, "RTP: jitter buffer not filled: " + tsReceive + " " + tsStart);
             return null;
         }
+
+        statistics.requestedFrames++;
+        //playbackIndex++;   // TODO: check if this is correct
+        tsIndex += tsAdd;  // set  TS for next image
+        statistics.jitterBufferSize = (tsReceive - tsIndex) / tsAdd;
+
+
+        ArrayList<RtpPacket> packetList = packetsForNextImage();
+        if (packetList == null) {
+            logger.log(Level.FINE, "RTP: no RTPs for playback  TS : " + tsIndex + " " + playbackIndex);
+            return null;
+        } else logger.log(Level.FINE, "RTP list size for rtp: " +playbackIndex + " " + packetList.size());
 
         byte[] image = JpegFrame.combineToOneImage(packetList);
         logger.log(Level.FINER, "Display TS: "
@@ -319,69 +336,175 @@ public class RtpHandler {
     }
 
     /**
+     * Construct a list of RTP packets which contain the data of one jpeg image.
+     *
+     * @return List of RTP packets for one image
+     */
+    private ArrayList<RtpPacket> packetsForNextImage() {
+        ArrayList<RtpPacket> packetList = new ArrayList<>();
+
+        int snFirst;                    // looking for fist RTP of a jpeg-frame
+        // TODO error correction of first packet desirable
+        if ( firstRtp.get(tsIndex) == null) {   // no RTPs with this TS
+
+            logger.log(Level.FINER, "RTP: no firstRTP with this TS: " + tsIndex);
+            statistics.framesLost++;        // full frame is lost
+            return null;
+        } else snFirst = firstRtp.get(tsIndex);
+        RtpPacket packet = obtainMediaPacket(snFirst);  // get the first RTP of the image
+        packetList.add(packet);                         // add in list
+
+        // looking for last RTP of a jpeg-frame
+        int snLast = 0;
+        List<Integer> tsList = sameTimestamps.get(tsIndex);     // list of RTPs with this TS
+        if (lastRtp.get(tsIndex) != null) {
+            snLast = lastRtp.get(tsIndex);                      // last RTP found in list
+        } else if (firstRtp.get(tsIndex + tsAdd) != null) {
+            snLast = firstRtp.get(tsIndex + tsAdd) - 1;         // last RTP is missing
+        } else if (sameTimestamps.get(tsIndex) != null) {
+            snLast = tsList.get( tsList.size() - 1);            // use TS-List
+        } else {
+            return packetList;                                  // only first RTP used
+        }
+        // TODO if list is fragmented return null or implement JPEG error concealment
+        logger.log(Level.FINER, "RTP: get RTPs from " + snFirst + " to " + snLast);
+        for (int i = snFirst+1; i <= snLast; i++) {
+            packet = obtainMediaPacket(i);
+            if (packet == null) {
+                statistics.framesPartLost++;
+                break;      // TODO stops after first missing RTP
+            }
+            packetList.add(packet);
+        }
+        playbackIndex = snLast;
+        return packetList;
+    }
+
+    /**
+     * Get the RTP packet with the given sequence number.
+     *
+     * This is the main method for getting RTP packets. It currently
+     * includes error correction via FEC, but can be extended in the future.
+     *
+     * @param number Sequence number of the RTP packet
+     * @return RTP packet, null if not available and not correctable
+     */
+    private RtpPacket obtainMediaPacket(final int number) {
+        int index = number % 0x10000; // account overflow of SNr (16 Bit)
+        RtpPacket packet = mediaPackets.get(index);
+        logger.log(Level.FINER, "RTP: try get RTP nr: " + index);
+
+        if (packet == null) {
+            statistics.packetsLost++;
+            logger.log(Level.WARNING, "RTP: Media lost: " + index);
+
+            boolean fecCorrectable = fecHandler.checkCorrection(index, mediaPackets);
+            if (fecDecodingEnabled && fecCorrectable) {
+                packet = fecHandler.correctRtp(index, mediaPackets);
+                statistics.correctedPackets++;
+                logger.log(Level.INFO, "---> FEC: correctable: " + index);
+            } else {
+                statistics.notCorrectedPackets++;
+                logger.log(Level.INFO, "---> FEC: not correctable: " + index);
+                return null;
+            }
+        }
+
+        return packet;
+    }
+
+
+    // ***************************** RTP-Receiver  ***************************************
+
+    /**
      * Process and store a received RTP packet.
      *
      * @param packetData the received RTP packet as byte array
      */
     public void processRtpPacket(byte[] packetData, int packetLength) {
-        Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
-        RTPpacket packet = new RTPpacket(packetData, packetLength);
+        RtpPacket packet = new RtpPacket(packetData, packetLength);
         int seqNr = packet.getsequencenumber();
 
-        RTPpacket decryptedPacket = null;
+        RtpPacket decryptedPacket = null;
         switch (encryptionMode) {
-        case SRTP:
-            decryptedPacket = srtpHandler.retrieveFromSrtp(packet.getpacket());
-            if (decryptedPacket != null) {
-                packet = decryptedPacket;
-            }
-            break;
-        case JPEG:
-        case JPEG_ATTACK:
-        default:
-            break;
+            case SRTP:
+                decryptedPacket = srtpHandler.retrieveFromSrtp(packet.getpacket());
+                if (decryptedPacket != null) {
+                    packet = decryptedPacket;
+                }
+                break;
+            case JPEG:
+            case JPEG_ATTACK:
+            default:
+                break;
         }
 
-        // set the correct index for beginning the playback
+        // store the first Timestamp
         if (playbackIndex == -1) {
             playbackIndex = seqNr - 1;
+            tsStart = packet.gettimestamp();
+            tsIndex = tsStart;
+            tsAdd = 0;
         }
-
-        int pt = packet.getpayloadtype();
-
-        if (pt == RTP_PAYLOAD_JPEG) {
-            statistics.receivedPackets++;
-            statistics.latestSequenceNumber = seqNr;
-            mediaPackets.put(seqNr, packet);
-
-            int ts = packet.gettimestamp();
-            List<Integer> tmpTimestamps = sameTimestamps.get(ts);
-            if (tmpTimestamps == null) {
-                tmpTimestamps = new ArrayList<>();
-            }
-            tmpTimestamps.add(seqNr);
-            sameTimestamps.put(ts, tmpTimestamps);
-            logger.log(Level.FINER, "FEC: set media nr: " + seqNr);
-            logger.log(Level.FINER, "FEC: set sameTimestamps: " + (0xFFFFFFFFL & ts)
-                    + " " + tmpTimestamps.toString());
-        } else if (pt == RTP_PAYLOAD_FEC) {
-            fecHandler.rcvFecPacket(packet);
+        // evaluate the correct TS-Offset
+        if (packet.gettimestamp()  > tsStart  && tsAdd == 0) {
+            tsAdd  = packet.gettimestamp() - tsStart;
+            logger.log(Level.FINER, "RTP: set tsAdd: " + tsAdd);
         }
-        // else: ignore packet
 
         logger.log(Level.FINER,
-                "---------------- Receiver -----------------------"
+            "---------------- Receiver RTP-Handler --------------------"
                 + "\r\n"
                 + "Got RTP packet with SeqNum # "
                 + packet.getsequencenumber()
                 + " TimeStamp: "
                 + (0xFFFFFFFFL & packet.gettimestamp()) // cast to long
                 + " ms, of type "
-                + pt
+                + packet.getpayloadtype()
                 + " Size: " + packet.getlength());
 
+        switch (packet.getpayloadtype()) {
+            case RTP_PAYLOAD_JPEG:
+                statistics.receivedPackets++;
+                statistics.latestSequenceNumber = seqNr;
+                mediaPackets.put(seqNr, packet);
+                // set first RTP of a jpeg-frame
+                if (packet.getJpegOffset() == 0) {
+                    logger.log(Level.FINER, "got first Paket: " + seqNr);
+                    firstRtp.put(packet.gettimestamp(), seqNr);
+                }
+                // set the last RTP of a jpeg-frame
+                if (packet.getMarker() == 1) {
+                    logger.log(Level.FINER, "got last Paket: " + seqNr);
+                    lastRtp.put(packet.gettimestamp(), seqNr);
+                }
+                logger.log(Level.FINER, "JPEG-Offset + Marker: "
+                    + packet.getJpegOffset() + " " + packet.getMarker());
+
+                // set list of same timestamps
+                int ts = packet.gettimestamp();
+                tsReceive = ts;
+                if (tsAdd != 0) statistics.jitterBufferSize = (tsReceive - tsIndex) / tsAdd;
+                List<Integer> tmpTimestamps = sameTimestamps.get(ts);
+                if (tmpTimestamps == null) {
+                    tmpTimestamps = new ArrayList<>();
+                }
+                tmpTimestamps.add(seqNr);
+                sameTimestamps.put(ts, tmpTimestamps);
+                logger.log(Level.FINER, "RTP: set sameTimestamps: " + (0xFFFFFFFFL & ts)
+                    + " " + tmpTimestamps);
+                break;
+
+
+            case RTP_PAYLOAD_FEC:
+                fecHandler.rcvFecPacket(packet);
+                break;
+
+            default:  // ignore unknown packet
+        }
+
         // TASK remove comment for debugging
-        // packet.printheader(); // print rtp header bitstream for debugging
+        packet.printheader(); // print rtp header bitstream for debugging
     }
 
     /**
@@ -450,72 +573,7 @@ public class RtpHandler {
         fecHandler.setFecGroupSize(newGroupSize);
     }
 
-    /**
-     * Get the RTP packet with the given sequence number.
-     *
-     * This is the main method for getting RTP packets. It currently
-     * includes error correction via FEC, but can be extended in future.
-     *
-     * @param number Sequence number of the RTP packet
-     * @return RTP packet, null if not available and not correctable
-     */
-    private RTPpacket obtainMediaPacket(final int number) {
-        Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
-        int index = number % 0x10000; // account overflow of SNr (16 Bit)
-        RTPpacket packet = mediaPackets.get(index);
-        logger.log(Level.FINER, "FEC: get RTP nu: " + index);
 
-        if (packet == null) {
-            statistics.packetsLost++;
-            logger.log(Level.WARNING, "FEC: Media lost: " + index);
 
-            boolean fecCorrectable = fecHandler.checkCorrection(index, mediaPackets);
-            if (fecDecodingEnabled && fecCorrectable) {
-                packet = fecHandler.correctRtp(index, mediaPackets);
-                statistics.correctedPackets++;
-                logger.log(Level.INFO, "---> FEC: correctable: " + index);
-            } else {
-                statistics.notCorrectedPackets++;
-                logger.log(Level.INFO, "---> FEC: not correctable: " + index);
-                return null;
-            }
-        }
-
-        return packet;
-    }
-
-    /**
-     * Construct a list of RTP packets which contain the data of one image.
-     *
-     * @return List of RTP packets for one image
-     */
-    private ArrayList<RTPpacket> packetsForNextImage() {
-        Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
-        ArrayList<RTPpacket> packetList = new ArrayList<>();
-        RTPpacket packet = obtainMediaPacket(playbackIndex);
-        if (packet == null) {
-            statistics.framesLost++;
-            return null;
-        }
-
-        packetList.add(packet);
-        int timestamp = packet.gettimestamp();
-        List<Integer> timestamps = sameTimestamps.get(timestamp);
-        if (timestamps == null) {
-            return packetList;
-        }
-
-        // TODO lost RTPs are not in the list but could perhaps be corrected -> check for snr
-        for (int i = 1; i < timestamps.size(); i++) {
-            packetList.add(obtainMediaPacket(timestamps.get(i)));
-        }
-
-        playbackIndex += timestamps.size() - 1;
-        // TODO if list is fragmented return null or implement JPEG error concealment
-
-        logger.log(Level.FINER, "-> Get list of " + packetList.size()
-                + " RTPs with TS: " + (0xFFFFFFFFL & timestamp));
-        return packetList;
-    }
 }
 

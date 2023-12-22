@@ -15,11 +15,11 @@ import java.util.logging.Logger;
 */
 
 abstract class FecHandlerDemo {
-  RTPpacket rtp;
-  FECpacket fec;
+  RtpPacket rtp;
+  FecPacket fec;
 
   // Receiver
-  HashMap<Integer, FECpacket> fecStack = new HashMap<>(); // list of fec packets
+  HashMap<Integer, FecPacket> fecStack = new HashMap<>(); // list of fec packets
   HashMap<Integer, Integer> fecNr = new HashMap<>(); // Snr of corresponding fec packet
   HashMap<Integer, List<Integer>> fecList = new HashMap<>(); // list of involved media packets
 
@@ -72,11 +72,11 @@ abstract class FecHandlerDemo {
    *
    * @param rtp RTPpacket
    */
-  public void setRtp(RTPpacket rtp) {
+  public void setRtp(RtpPacket rtp) {
     // init new FEC packet if necessary
     if (fec == null) {
       fec =
-          new FECpacket(
+          new FecPacket(
               FEC_PT, fecSeqNr, rtp.gettimestamp(), fecGroupSize, rtp.getsequencenumber());
       fec.setUlpLevelHeader(0, 0, fecGroupSize);
     }
@@ -128,9 +128,9 @@ abstract class FecHandlerDemo {
    *
    * @param rtp the received FEC-RTP
    */
-  public void rcvFecPacket(RTPpacket rtp) {
+  public void rcvFecPacket(RtpPacket rtp) {
     // build fec from rtp
-    fec = new FECpacket(rtp.getpacket(), rtp.getpacket().length);
+    fec = new FecPacket(rtp.getpacket(), rtp.getpacket().length);
     // TASK remove comment for debugging
     // fec.printHeaders();
 
@@ -156,7 +156,7 @@ abstract class FecHandlerDemo {
    * @param nr Sequence Nr.
    * @return true if possible
    */
-  abstract boolean checkCorrection(int nr, HashMap<Integer, RTPpacket> mediaPackets);
+  abstract boolean checkCorrection(int nr, HashMap<Integer, RtpPacket> mediaPackets);
 
   /**
    * Build an RTP packet from FEC and group
@@ -164,7 +164,7 @@ abstract class FecHandlerDemo {
    * @param nr Sequence Nr.
    * @return RTP packet
    */
-  abstract RTPpacket correctRtp(int nr, HashMap<Integer, RTPpacket> mediaPackets);
+  abstract RtpPacket correctRtp(int nr, HashMap<Integer, RtpPacket> mediaPackets);
 
   /**
    * It is necessary to clear all data structures

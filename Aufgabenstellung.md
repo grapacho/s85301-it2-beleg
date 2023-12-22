@@ -5,7 +5,7 @@ Die Aufgaben beziehen sich auf den Beleg Videostreaming für das Modul Internett
 
 ### 0. Vorarbeiten
 1. Sie clonen das Projekt nach Anleitung aus [Git](git.md).
-2. Sie erstellen die "leeren" Klassen `Rtsp`, `RTPpacket` und `FECHandler` und leiten diese aus den abstrakten Klassen `RtspDemo`, `RTPpacketDemo` und `FECHandlerDemo` ab (Stichwort `extends`).  Das Projekt sollte danach kompilierbar und ausführbar sein.  
+2. Sie erstellen die "leeren" Klassen `Rtsp`, `RtpPacket` und `FECHandler` und leiten diese aus den abstrakten Klassen `RtspDemo`, `RtpPacketDemo` und `FECHandlerDemo` ab (Stichwort `extends`).  Das Projekt sollte danach kompilierbar und ausführbar sein.  
 Unter einigen IDEs z.B. IntelliJ können Sie die Klassenrümpfe automatisch erstellen lassen mittels: Generate Contructors sowie implement Methods
 3. Sie konfigurieren die Kommandozeilenparameter für Client und Server wie in der [Projektbeschreibung](Projektbeschreibung.md#2.-programmstart) beschrieben.
 4. Sie erstellen in Ihrem Gitverzeichnis ein Unterverzeichnis mit dem Namen `videos` und legen in dieses das Beispielvideo `htw.mjpeg`, siehe Praktikumsdateien auf der HTW-IT2-Homepage.
@@ -29,7 +29,7 @@ Es ist ausreichend, sich bei der DESCRIBE-Methode auf das Beispielvideo zu bezie
 Ausgewertet werden die u.a. die Parameter `framerate` und `range`.
 
 ### 3. RTP-Protokoll
-Programmieren Sie die Methode setRtpHeader() der Klasse `RTPpacket` entsprechend der Projektbeschreibung und den Kommentaren im Quelltext der abstrakten Klasse gegebenen Hinweisen.
+Programmieren Sie die Methode setRtpHeader() der Klasse `RtpPacket` entsprechend der Projektbeschreibung und den Kommentaren im Quelltext der abstrakten Klasse gegebenen Hinweisen.
 Nach dem Setzen des korrekten RTP-Headers sollte das Demovideo abspielbar sein. Im Fehlerfall kann es hilfreich sein, mittels Wireshark den Inhalt der übertragenen RTP-Pakete zu inspizieren. Eventuell ist auch der zur Verfügung gestellte Paketmitschnitt hilfreich.
 
 
@@ -37,8 +37,8 @@ Nach dem Setzen des korrekten RTP-Headers sollte das Demovideo abspielbar sein. 
 Sie können an der GUI des Servers eine Paketfehlerwahrscheinlichkeit einstellen und damit Netzwerkfehler simulieren. Probieren Sie verschiedene Einstellungen aus und betrachten Sie das Ergebnis in der Videoanzeige. 
 Ab welcher Paketfehlerwahrscheinlichkeit wird die Videoanzeige spürbar beeinträchtigt?
 
-Das RTP-Streaming ist z.Z. so konfiguriert, dass ein JPEG-Bild in ein einziges RTP verpackt wird. 
-Berechnen die Wahrscheinlichkeit für den Verlust eines Bildes in Abhängigkeit von der Kanalverlustrate, wenn pro Bild 2 oder 5 RTPs versendet werden.
+Das RTP-Streaming ist so konfiguriert, dass ein JPEG-Bild in mehrere RTPs verpackt wird. 
+Berechnen die Wahrscheinlichkeit für den Verlust eines Bildes in Abhängigkeit von der Kanalverlustrate, wenn pro Bild 1, 2, 5, 10 oder 20 RTPs versendet werden.
 Von einem Bildverlust ist dabei auszugehen, wenn mindestens ein RTP der RTPs für ein Bild fehlt.
 Nutzen Sie zur grafischen Darstellung das Programm Gnuplot. Eine Demodatei befindet sich im Projektverzeichnis `statistics`. 
 
@@ -51,13 +51,15 @@ Statistik am Empfänger:
 6. verlorene Bilder
 
 
+
+
 ### 5. Implementierung des FEC-Schutzes
 Implementieren Sie einen FEC-Schutz gemäß [RFC 5109](https://www.ietf.org/rfc/rfc5109.txt).
 Der Server mit FEC-Schutz soll kompatibel zu Clients ohne FEC-Verfahren sein! Nutzen Sie dazu das Feld Payloadtype des RTP-Headers (PT=127 für FEC-Pakete).
 
 Um nicht die komplette FEC-Funktionalität selbst entwickeln zu müssen, werden Ihnen zwei Klassen bereit gestellt:
-1. [FECpacket](src/FECpacket.java): dies ist eine aus RTPpacket abgeleitete Klasse mit der erweiterten Funktionalität für das Handling von FEC-Paketen (vollständig implementiert)
-2. [FecHandler](src/Fechandler.java): diese Klasse ist zuständig für die server- und clientseitige FEC-Bearbeitung unter Nutzung von FECpacket (teilweise implementiert)
+1. [FecPacket](src/FECpacket.java): dies ist eine aus RtpPacket abgeleitete Klasse mit der erweiterten Funktionalität für das Handling von FEC-Paketen (vollständig implementiert)
+2. [FecHandler](src/Fechandler.java): diese Klasse ist zuständig für die server- und clientseitige FEC-Bearbeitung unter Nutzung von FecPacket (teilweise implementiert)
    * Server: Kombination mehrerer Medienpakete zu einem FEC-Paket
    * Client: Jitterpuffer für empfangene Medien- und FEC-Pakete, Bereitstellung des aktuellen Bildinhaltes in Form einer Liste von RTP-Paketen mit gleichem TimeStamp.
 
@@ -96,8 +98,8 @@ Eine Übersicht über die relevanten Datenstrukturen und ein Beispiel ist hier z
 * Speicherung der Sequenznummer des FEC-Packets und der Liste aller betroffenen RTP-Pakete für jedes RTP-Paket in zwei HashMaps (fecNr, fecList)
 * periodisches Löschen alter nicht mehr benötigter Einträge im Jitterpuffer
 
-##### FECpacket
-* Ableitung aus vorhandenem RTPpacket
+##### FecPacket
+* Ableitung aus vorhandenem RtpPacket
 * Sender: Konstruktor zur Generierung eines FEC-Objektes aus Media-RTPs
 * Empfänger: Konstruktur zur Generierung eines FEC-Objektes aus einem empfangenen FEC-RTP
 * getRtpList: Ermittlung aller in einem FEC involvierten Media-RTPs
@@ -130,6 +132,15 @@ Stellen Sie weiterhin die Bildverlustwahrscheinlichkeit dar, wenn von folgenden 
 
 Für die eigentliche Berechnung können Sie statt Gnuplot auch R oder ein anderes Tool nutzen.
 Diskutieren Sie eventuelle Unterschiede der praktisch und theoretisch ermittelten Ergebnisse.
+
+
+Für diese Aufgabe unterstützt Sie die Statistik am Empfänger mit dem Werten:
+1. aktuelle Puffergröße
+2. letzte empfangene Sequenznummer
+3. Anzahl erhaltener / verlorener Medienpakete + prozentuale Angabe verlorener Medienpakete
+4. Anzahl korrigierter / unkorrigierbarer Medienpakete + prozentuale Angabe unkorrigierbarer Medienpakete
+5. Abspielzähler (Pakete / Bilder)
+6. verlorene Bilder
 
 ### 7. Kompatibilität des Demoprojektes
 Prüfen Sie die Kompatibilität des Clients und Servers mit frei verfügbaren RTSP-Playern/-Servern (z.B. VLC-Player oder FFMPEG) und versuchen Sie eventuelle Probleme zu analysieren. Dokumentieren Sie die Ergebnisse.

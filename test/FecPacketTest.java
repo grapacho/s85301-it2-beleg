@@ -1,15 +1,13 @@
-import static org.junit.jupiter.api.Assertions.*;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-class FECpacketTest {
-private static FECpacket fecPacket;
+class FecPacketTest {
+private static FecPacket fecPacket;
 
   @BeforeAll
   public static void initRTP() {
-    fecPacket = new FECpacket(26, 42, 0, 48, 0);
+    fecPacket = new FecPacket(26, 42, 0, 48, 0);
   }
   @AfterAll
   static void afterAll() {

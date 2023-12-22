@@ -147,12 +147,12 @@ public class SrtpHandler {
      * @param packet Received packet.
      * @return RTP packet.
      */
-    public RTPpacket retrieveFromSrtp(byte[] packet) {
+    public RtpPacket retrieveFromSrtp(byte[] packet) {
         if (!isInitialized()) {
             return null;
         }
 
-        RTPpacket rtp = new RTPpacket(packet, packet.length);
+        RtpPacket rtp = new RtpPacket(packet, packet.length);
         int seq = rtp.getsequencenumber();
         if (s_l == -1) {
             s_l = (short)seq;
@@ -208,7 +208,7 @@ public class SrtpHandler {
      * @param packet The packet which will be transformed.
      * @return The SRTP packet as byte array.
      */
-    public byte[] transformToSrtp(RTPpacket packet) {
+    public byte[] transformToSrtp(RtpPacket packet) {
         if (!isInitialized()) {
             return null;
         }
@@ -535,9 +535,9 @@ public class SrtpHandler {
 
     public static boolean testPacketProcessing(SrtpHandler sender, SrtpHandler receiver) {
         byte[] data = new byte[1024];
-        RTPpacket packet = new RTPpacket(26, 1234, 9000, 1, data, data.length);
+        RtpPacket packet = new RtpPacket(26, 1234, 9000, 1, data, data.length);
         byte[] srtp = sender.transformToSrtp(packet);
-        RTPpacket received = receiver.retrieveFromSrtp(srtp);
+        RtpPacket received = receiver.retrieveFromSrtp(srtp);
         byte[] receivedPayload = received.getpayload();
 
         boolean passed = true;

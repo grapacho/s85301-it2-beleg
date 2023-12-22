@@ -167,7 +167,7 @@ public class JpegFrame {
       // Prüfe, welcher Marker gelesen wurde.
       if (Arrays.equals(marker, DQT_MARKER)) {
         if (section_body[0] != 0x00) {
-          throw new IllegalStateException("Nur 8-bit Präzesion wird unterstützt.");
+          logger.log(Level.WARNING,"RFC 2435 supports only 8-bit precision");
         }
 
         /* Quantisierungstabelle (QT) ist 64 Byte lang. */
@@ -194,7 +194,7 @@ public class JpegFrame {
         // Only 3 components are supported by RFC 2435
         final int numComponents = byteArrayToInt(Arrays.copyOfRange(section_body, 5, 6));
         if (numComponents != 3) {
-          throw new IllegalStateException("Es werden nur 3 Sampling-Komponenten durch RFC-2435 unterstützt.");
+          logger.log(Level.WARNING, "RFC-2435 supports only  3 sampling-components: " + numComponents);
         }
         for (int j = 0; j < 3; j++) {
           final int idx = 6 + j * 3;
@@ -269,7 +269,7 @@ public class JpegFrame {
    * @param list der RTP-Pakete
    * @return JPEG
    */
-  public static byte[] combineToOneImage(final List<RTPpacket> list) {
+  public static byte[] combineToOneImage(final List<RtpPacket> list) {
     ArrayList<JpegFrame> jpeg = new ArrayList<>();
     list.forEach( rtp -> jpeg.add( JpegFrame.getFromRtpPayload( rtp.getpayload()) ) );
 
