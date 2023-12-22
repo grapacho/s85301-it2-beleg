@@ -20,8 +20,6 @@ import com.github.sarxos.webcam.Webcam;
 import rtp.RtpHandler;
 import rtsp.Rtsp;
 import utils.CustomLoggingHandler;
-import video.AviMetadataParser;
-import video.QuickTimeMetadataParser;
 import video.VideoMetadata;
 import video.VideoReader;
 
@@ -42,8 +40,6 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
   static int imagenb = 0; // image nb of the image currently transmitted
   VideoReader video; // VideoStream object used to access video frames
   static String VideoDir = "videos/"; // Directory for videos on the server
-  static int DEFAULT_FRAME_PERIOD = 40; // Frame period of the video to stream, in ms
-  //static int DEFAULT_FRAME_PERIOD = 1000; // Debugging
   public VideoMetadata videoMeta = null;
   static Webcam webcam;
   Timer timer; // timer used to send the images at the video frame rate
@@ -231,7 +227,7 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
           logger.log(Level.INFO, "New RTSP state: READY");
           // TODO
           if (theServer.videoMeta == null) {
-            theServer.videoMeta = Server.getVideoMetadata(theServer.rtsp.getVideoFileName() );
+            theServer.videoMeta = VideoMetadata.getVideoMetadata(VideoDir, theServer.rtsp.getVideoFileName() );
           }
 
           if (theServer.rtsp.getVideoFileName().endsWith("webcam")) {
@@ -291,7 +287,7 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
 
         case DESCRIBE:
           logger.log(Level.INFO, "DESCRIBE Request");
-          theServer.videoMeta = Server.getVideoMetadata(theServer.rtsp.getVideoFileName() );
+          theServer.videoMeta = VideoMetadata.getVideoMetadata(VideoDir, theServer.rtsp.getVideoFileName() );
           theServer.rtsp.setVideoMeta(theServer.videoMeta);
           logger.log(Level.INFO, "Video Meta: " + theServer.videoMeta.toString());
           theServer.rtsp.send_RTSP_response(DESCRIBE);
@@ -401,38 +397,6 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
     panel.add(e_jpeg, gbc);
   }
 
-  /** Get the metadata from a video file.
-   *
-   *  If no metadata is available, all fields are zero-initialized except for
-   *  the framerate. Because the framerate is strongly required,
-   *  it is set to a default value.
-   *
-   *  @param filename Name of the video file
-   *  @return metadata structure containing the extracted information
-   */
-   static VideoMetadata getVideoMetadata(String filename) {
-    VideoMetadata meta;
-
-    String[] splittedFilename = filename.split("\\.");
-    switch (splittedFilename[splittedFilename.length-1]) {
-      case "avi":
-        meta = AviMetadataParser.parse(VideoDir+filename);
-        break;
-      case "mov":
-        meta = QuickTimeMetadataParser.parse(VideoDir+filename);
-        break;
-      default:
-        logger.log(Level.WARNING, "File extension not recognized: " + filename);
-      case "mjpg":
-      case "mjpeg":
-        logger.log(Level.FINE, "Framerate: " + 1000 / DEFAULT_FRAME_PERIOD);
-        meta = new VideoMetadata(1000 / DEFAULT_FRAME_PERIOD);
-        break;
-    }
-
-    assert meta != null : "video.VideoMetadata of file " + filename + " was not initialized correctly";
-    return meta;
-  }
 
   // convert BufferedImage to byte[]
   public static byte[] toByteArray(BufferedImage bi, String format) throws IOException {
