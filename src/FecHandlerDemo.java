@@ -49,6 +49,7 @@ abstract class FecHandlerDemo {
   int nrNotCorrected; // play loop
   int nrFramesRequested; // Video Frame
   int nrFramesLost; // Video Frame
+  static final Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
 
   /** Constructor for Sender */
   public FecHandlerDemo(int size) {
@@ -87,6 +88,7 @@ abstract class FecHandlerDemo {
 
   /** @return True, if all RTP-packets of the group are handled */
   public boolean isReady() {
+    logger.log(Level.FINER, "FEC: isReady: " + fecGroupCounter + " " + fecGroupSize);
     return (fecGroupCounter == fecGroupSize);
   }
 
@@ -127,7 +129,6 @@ abstract class FecHandlerDemo {
    * @param rtp the received FEC-RTP
    */
   public void rcvFecPacket(RTPpacket rtp) {
-    Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     // build fec from rtp
     fec = new FECpacket(rtp.getpacket(), rtp.getpacket().length);
     // TASK remove comment for debugging
@@ -171,7 +172,6 @@ abstract class FecHandlerDemo {
    * @param nr Media Sequence Nr.
    */
   void clearStack(int nr) {
-    Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     int cnr = nr - maxGroupSize;
     if (fecNr.get(cnr) != null) {
       int fnr = fecNr.get(cnr); // corresponding FEC packet

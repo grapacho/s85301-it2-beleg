@@ -7,13 +7,18 @@ host=$1
 port=$2
 video=$3
 
+
+host=localhost
+port=8554
+#video=htw
+
 src=src
 bin=out/production/RTSP-Streaming
 
 
 # Kompilierung
-echo "compile classes..."
-javac -cp $src ${src}/Client.java  -d $bin 
+#echo "compile classes..."
+#javac -cp $src ${src}/Client.java  -d $bin 
 
 # Start
 echo "start classes..."
