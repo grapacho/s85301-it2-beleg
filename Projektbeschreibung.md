@@ -11,25 +11,25 @@ Die bereitgestellten Kassen mit der Endung `Demo` sind abstrakte Klassen, die no
 
 ### Server-seitige Klassen
 * [Server](src/Server.java): Funktionalität des Servers zur Antwort auf die RTSP-Clientanfragen und Streaming des Videos
-* [AviMetadataParser](AviMetadataParser.java): Extrahiert Metadaten aus AVI-Dateien
-* [QuickTimeMetadataParser](QuickTimeMetadataParser.java): Extrahiert Metadaten aus Quicktime-Movie-Dateien
-* [VideoReader](src/VideoReader.java): Einlesen einer MJPEG-Datei auf der Serverseite
+* [video.AviMetadataParser](AviMetadataParser.java): Extrahiert Metadaten aus AVI-Dateien
+* [video.QuickTimeMetadataParser](QuickTimeMetadataParser.java): Extrahiert Metadaten aus Quicktime-Movie-Dateien
+* [video.VideoReader](src/VideoReader.java): Einlesen einer MJPEG-Datei auf der Serverseite
 
 ### Client-seitige Klassen
 * [Client](src/Client.java): Funktionalität des Clients mit Benutzerschnittstelle zum Senden der RTSP-Kommandos und Anzeige des Videos
-* [ReceptionStatistic](src/ReceptionStatistic.java): Bereitstellung von Empfangsstatistiken
+* [rtp.ReceptionStatistic](src/ReceptionStatistic.java): Bereitstellung von Empfangsstatistiken
 
 ### Klassen für Server und Client
-* [RtspDemo](src/RtspDemo.java): Implementierung des RTSP-Protokolls für Client und Server
-* [RtpHandler](src/RtpHandler.java): Verarbeitung von RTP-Paketen
-* [RtpPacketDemo](src/RtpPacketDemo.java): Funktionalität zur Unterstützung von RTP-Paketen
-* [FecHandlerDemo](src/FecHandlerDemo.java): Unterstützung der Fehlerkorrektur mittels FEC
-* [FecPacket](src/FECpacket.java): Erweiterung der RTP-Klasse mit FEC-Funktionalität
-* [VideoMetadata](VideoMetadata.java): Video-Metadaten wie Framerate und Abspieldauer
-* [JpegFrame](src/JpegFrame): Codierung/Decodierung von JPEG-Bildern gemäß RFC-2435
-* [SrtpHandler](src/SrtpHandler.java): Verschlüsselung von RTP-Paketen
-* [JpegEncryptionHandler](src/JpegEncryptionHandler.java): Verschlüsselung von JPEG-Bildern (Quantisierungstabellen)
-* [CustomLoggingHandler](CustomLoggingHandler.java): Anpassung der Logger-Ausgaben für minimalen Overhead
+* [rtsp.RtspDemo](src/rtsp.RtspDemo.java): Implementierung des RTSP-Protokolls für Client und Server
+* [rtp.RtpHandler](src/RtpHandler.java): Verarbeitung von RTP-Paketen
+* [rtp.RtpPacketDemo](src/rtp.RtpPacketDemo.java): Funktionalität zur Unterstützung von RTP-Paketen
+* [rtp.FecHandlerDemo](src/rtp.FecHandlerDemo.java): Unterstützung der Fehlerkorrektur mittels FEC
+* [rtp.FecPacket](src/FECpacket.java): Erweiterung der RTP-Klasse mit FEC-Funktionalität
+* [video.VideoMetadata](VideoMetadata.java): Video-Metadaten wie Framerate und Abspieldauer
+* [rtp.JpegFrame](src/JpegFrame): Codierung/Decodierung von JPEG-Bildern gemäß RFC-2435
+* [rtp.SrtpHandler](src/SrtpHandler.java): Verschlüsselung von RTP-Paketen
+* [rtp.JpegEncryptionHandler](src/JpegEncryptionHandler.java): Verschlüsselung von JPEG-Bildern (Quantisierungstabellen)
+* [utils.CustomLoggingHandler](CustomLoggingHandler.java): Anpassung der Logger-Ausgaben für minimalen Overhead
 
 
 ## 2. Programmstart

@@ -5,15 +5,15 @@ Die Aufgaben beziehen sich auf den Beleg Videostreaming für das Modul Internett
 
 ### 0. Vorarbeiten
 1. Sie clonen das Projekt nach Anleitung aus [Git](git.md).
-2. Sie erstellen die "leeren" Klassen `Rtsp`, `RtpPacket` und `FECHandler` und leiten diese aus den abstrakten Klassen `RtspDemo`, `RtpPacketDemo` und `FECHandlerDemo` ab (Stichwort `extends`).  Das Projekt sollte danach kompilierbar und ausführbar sein.  
+2. Sie erstellen die "leeren" Klassen `rtsp.Rtsp`, `rtp.RtpPacket` und `rtp.FECHandler` und leiten diese aus den abstrakten Klassen `rtsp.RtspDemo`, `rtp.RtpPacketDemo` und `FECHandlerDemo` ab (Stichwort `extends`).  Das Projekt sollte danach kompilierbar und ausführbar sein.  
 Unter einigen IDEs z.B. IntelliJ können Sie die Klassenrümpfe automatisch erstellen lassen mittels: Generate Contructors sowie implement Methods
 3. Sie konfigurieren die Kommandozeilenparameter für Client und Server wie in der [Projektbeschreibung](Projektbeschreibung.md#2.-programmstart) beschrieben.
 4. Sie erstellen in Ihrem Gitverzeichnis ein Unterverzeichnis mit dem Namen `videos` und legen in dieses das Beispielvideo `htw.mjpeg`, siehe Praktikumsdateien auf der HTW-IT2-Homepage.
 
 
 ### 1. RTSP-Protokoll: Client-Methoden
-Die gesamte RTSP-Funktionalität für Client und Server befindet sich in der abstrakten Klasse `RtspDemo` und der von Ihnen abzuleitenden Klasse `Rtsp`.
-Programmieren Sie die Klasse `Rtsp` entsprechend der in der Projektbeschreibung und den Kommentaren im Quelltext der abstrakten Klasse `RtspDemo` gegebenen Hinweisen.
+Die gesamte RTSP-Funktionalität für Client und Server befindet sich in der abstrakten Klasse `rtsp.RtspDemo` und der von Ihnen abzuleitenden Klasse `rtsp.Rtsp`.
+Programmieren Sie die Klasse `rtsp.Rtsp` entsprechend der in der Projektbeschreibung und den Kommentaren im Quelltext der abstrakten Klasse `rtsp.RtspDemo` gegebenen Hinweisen.
 
 1. Buttonhandler für alle Methoden ausprogrammieren, als Beispiel siehe den Handler für die setup-Methode und [Hinweise zu Zuständen](Projektbeschreibung.md#zustände-des-clients).
 2. Ausprogrammierung der Methode `send_RTSP_request()`. Hier muss über den vorhandenen Stream `RTSPBufferedWriter` der komplette RTSP-Request für alle möglichen Methoden als String zusammengebaut und verschickt werden. Orientieren Sie sich an der beispielhaften [RTSP-Kommunikation](Projektbeschreibung.md#beispiel).
@@ -21,15 +21,15 @@ Programmieren Sie die Klasse `Rtsp` entsprechend der in der Projektbeschreibung 
 
 
 ### 2. SDP-Protokoll
-Ergänzen Sie die RTSP-Methode DESCRIBE in der Klasse `Rtsp` anhand der Beispiele aus [RFC 2326](https://www.ietf.org/rfc/rfc2326.txt) und [RFC 2327](https://www.ietf.org/rfc/rfc2327.txt).
-Überschreiben Sie dazu die bereits vorhandene Methode `getDescribe()` aus der Klasse `RtspDemo` in der Klasse `Rtsp`.
+Ergänzen Sie die RTSP-Methode DESCRIBE in der Klasse `rtsp.Rtsp` anhand der Beispiele aus [RFC 2326](https://www.ietf.org/rfc/rfc2326.txt) und [RFC 2327](https://www.ietf.org/rfc/rfc2327.txt).
+Überschreiben Sie dazu die bereits vorhandene Methode `getDescribe()` aus der Klasse `rtsp.RtspDemo` in der Klasse `rtsp.Rtsp`.
 Die Serverantwort muss im Client nicht ausgewertet werden. Die Anzeige der Antwort in der Konsole des Clients genügt.
 
 Es ist ausreichend, sich bei der DESCRIBE-Methode auf das Beispielvideo zu beziehen und die Antwort auf dem Server statisch zu hinterlegen. 
 Ausgewertet werden die u.a. die Parameter `framerate` und `range`.
 
 ### 3. RTP-Protokoll
-Programmieren Sie die Methode setRtpHeader() der Klasse `RtpPacket` entsprechend der Projektbeschreibung und den Kommentaren im Quelltext der abstrakten Klasse gegebenen Hinweisen.
+Programmieren Sie die Methode setRtpHeader() der Klasse `rtp.RtpPacket` entsprechend der Projektbeschreibung und den Kommentaren im Quelltext der abstrakten Klasse gegebenen Hinweisen.
 Nach dem Setzen des korrekten RTP-Headers sollte das Demovideo abspielbar sein. Im Fehlerfall kann es hilfreich sein, mittels Wireshark den Inhalt der übertragenen RTP-Pakete zu inspizieren. Eventuell ist auch der zur Verfügung gestellte Paketmitschnitt hilfreich.
 
 

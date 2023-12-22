@@ -1,4 +1,4 @@
-/*
+package rtp;/*
     Information according to RFC 5109
     Implementation: http://apidocs.jitsi.org/libjitsi/
 

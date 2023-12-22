@@ -1,3 +1,5 @@
+package video;
+
 /** Structure holding metadata of video files
  *
  * @author Emanuel Günther (s76954)

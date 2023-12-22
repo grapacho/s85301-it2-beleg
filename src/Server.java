@@ -17,6 +17,13 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.imageio.ImageIO;
 import com.github.sarxos.webcam.Webcam;
+import rtp.RtpHandler;
+import rtsp.Rtsp;
+import utils.CustomLoggingHandler;
+import video.AviMetadataParser;
+import video.QuickTimeMetadataParser;
+import video.VideoMetadata;
+import video.VideoReader;
 
 public class Server extends JFrame implements ActionListener, ChangeListener {
 
@@ -284,6 +291,9 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
 
         case DESCRIBE:
           logger.log(Level.INFO, "DESCRIBE Request");
+          theServer.videoMeta = Server.getVideoMetadata(theServer.rtsp.getVideoFileName() );
+          theServer.rtsp.setVideoMeta(theServer.videoMeta);
+          logger.log(Level.INFO, "Video Meta: " + theServer.videoMeta.toString());
           theServer.rtsp.send_RTSP_response(DESCRIBE);
           break;
 
@@ -420,7 +430,7 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
         break;
     }
 
-    assert meta != null : "VideoMetadata of file " + filename + " was not initialized correctly";
+    assert meta != null : "video.VideoMetadata of file " + filename + " was not initialized correctly";
     return meta;
   }
 

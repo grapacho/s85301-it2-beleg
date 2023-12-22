@@ -1,12 +1,13 @@
+package video;
+
 import static java.util.logging.Level.WARNING;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.logging.Logger;
+import rtp.JpegFrame;
 
 /**
  * Klasse zum Einlesen eines MJPEG-Videos.
@@ -60,7 +61,7 @@ public class VideoReader {
         fileInputStream.close();
       } catch (IOException e) {
         Logger.getGlobal()
-            .log(WARNING, "FileInputStream des VideoReader konnte nicht geschlossen werden.");
+            .log(WARNING, "FileInputStream des video.VideoReader konnte nicht geschlossen werden.");
       }
     }
   }

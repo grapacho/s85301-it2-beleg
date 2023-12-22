@@ -1,3 +1,5 @@
+package rtp;
+
 /**
  * Class for statistic values of the RTP packet reception.
  *

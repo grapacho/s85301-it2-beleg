@@ -1,3 +1,5 @@
+package rtp;
+
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -182,7 +184,7 @@ abstract class RtpPacketDemo {
   }
 
   public int getJpegOffset() {
-    //byteArrayToInt(Arrays.copyOfRange(payload, 1, 4)); // from JpegFrame.java
+    //byteArrayToInt(Arrays.copyOfRange(payload, 1, 4)); // from rtp.JpegFrame.java
     ByteBuffer wrapped = ByteBuffer.wrap(payload,0,4);
     wrapped.put(0, (byte) 0);
     return wrapped.getInt();

@@ -1,3 +1,5 @@
+package rtsp;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -12,6 +14,7 @@ import java.util.ListIterator;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import video.VideoMetadata;
 
 // https://github.com/tyazid/RTSP-Java-UrlConnection
 
@@ -58,6 +61,13 @@ abstract class RtspDemo {
    */
   public String getVideoFileName() {    return VideoFileName;  }
   String VideoFileName;     // video file requested from the client
+
+  public void setVideoMeta(VideoMetadata meta) {
+    this.meta = meta;
+  }
+
+  VideoMetadata meta;
+
   static int MJPEG_TYPE = 26; // RTP payload type for MJPEG video
   //static String VideoDir = "videos/"; // Directory for videos on the server
   String sdpTransportLine = "";
@@ -127,7 +137,7 @@ abstract class RtspDemo {
    * Button handler for SETUP button
    * @return Success or not
    */
-   boolean setup() {
+   public boolean setup() {
     // request is only valid if client is in correct state
     if (state != State.INIT) {
       logger.log(Level.WARNING, "RTSP state: " + state);
@@ -147,14 +157,14 @@ abstract class RtspDemo {
     }
   }
 
-  abstract boolean play();
+  public abstract boolean play();
 
-  abstract boolean pause();
+  public abstract boolean pause();
 
-  abstract boolean teardown();
+  public abstract boolean teardown();
 
-  abstract void describe();
-  abstract void options();
+  public abstract void describe();
+  public abstract void options();
 
   /**
    * Sends a RTSP request to the server
@@ -163,14 +173,14 @@ abstract class RtspDemo {
    * use logger.log() for logging the request to the console
    * end request with BufferedWriter.flush()
    */
-  abstract void send_RTSP_request(String request_type);
+  public abstract void send_RTSP_request(String request_type);
 
 
   /**
    * Parse the server response
    * @return Reply code from server
    */
-   int parse_server_response() {
+   public int parse_server_response() {
     int reply_code = 0;
     int cl = 0;  // content length
 
@@ -361,7 +371,7 @@ abstract class RtspDemo {
    *
    * @return RTSP-Request Type (SETUP, PLAY, etc.)
    */
-  int parse_RTSP_request() throws IOException {
+  public int parse_RTSP_request() throws IOException {
     int request_type = -1;
     logger.log(Level.INFO, "*** wait for RTSP-Request ***");
     String RequestLine = RTSPBufferedReader.readLine();
@@ -420,7 +430,7 @@ abstract class RtspDemo {
    *
    * @param method RTSP-Method
    */
-   void send_RTSP_response(int method, int... localPort) {
+   public void send_RTSP_response(int method, int... localPort) {
     logger.log(Level.INFO, "*** send RTSP-Response ***");
     try {
       RTSPBufferedWriter.write("RTSP/1.0 200 OK" + CRLF);
@@ -432,7 +442,7 @@ abstract class RtspDemo {
           RTSPBufferedWriter.write( getOptions() );
           break;
         case DESCRIBE:
-          VideoMetadata meta = Server.getVideoMetadata(VideoFileName);
+          //VideoMetadata meta = Server.getVideoMetadata(VideoFileName);
           logger.log(Level.INFO, "SDP: " + getDescribe(meta, RTP_dest_port));
           RTSPBufferedWriter.write( getDescribe(meta, RTP_dest_port ));
           break;

@@ -1,3 +1,4 @@
+package rtp;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -220,10 +221,10 @@ public class JpegFrame {
   }
 
   /**
-   * Erstellt aud den Payloaddaten eines RTP-Paketes eine neue Instanz des JpegFrame.
+   * Erstellt aud den Payloaddaten eines RTP-Paketes eine neue Instanz des rtp.JpegFrame.
    *
    * @param payload payload des RTP-Pakets
-   * @return ertslltes JpegFrame
+   * @return ertslltes rtp.JpegFrame
    */
   public static JpegFrame getFromRtpPayload(final byte[] payload) {
     final JpegFrame jpegFrame = new JpegFrame();

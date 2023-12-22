@@ -1,3 +1,5 @@
+package rtp;
+
 import java.security.Key;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -96,7 +98,7 @@ public class SrtpHandler {
     private byte[] k_s = null; // session salting key
 
     /**
-     * Create a SrtpHandler with it's cryptographic context.
+     * Create a rtp.SrtpHandler with it's cryptographic context.
      *
      * @param cipherId The algorithm and mode to be used for encryption.
      * @param macId The algorithm used for message authentication.
@@ -447,7 +449,7 @@ public class SrtpHandler {
     /**
      * Test the key derivation function.
      *
-     * The SrtpHandler can be initialized with null-Values, because
+     * The rtp.SrtpHandler can be initialized with null-Values, because
      * this method sets all necessary values.
      *
      * The test values are from Section B.3 of RFC 3711.

@@ -1,3 +1,5 @@
+package rtp;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -41,7 +43,7 @@ public class RtpHandler {
         (byte)0x0E, (byte)0xC6, (byte)0x75, (byte)0xAD, (byte)0x49, (byte)0x8A, (byte)0xFE,
         (byte)0xEB, (byte)0xB6, (byte)0x96, (byte)0x0B, (byte)0x3A, (byte)0xAB, (byte)0xE6};
 
-    private EncryptionMode encryptionMode;
+    private EncryptionMode encryptionMode = EncryptionMode.NONE;
     private FecHandler fecHandler = null;
     private JpegEncryptionHandler jpegEncryptionHandler = null;
     private SrtpHandler srtpHandler = null;
@@ -75,7 +77,7 @@ public class RtpHandler {
     static final Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
 
     /**
-     * Create a new RtpHandler as server.
+     * Create a new rtp.RtpHandler as server.
      *
      * @param fecGroupSize Group size for FEC packets. If the value is 0, FEC will be disabled.
      */
@@ -94,7 +96,7 @@ public class RtpHandler {
     }
 
     /**
-     * Create a new RtpHandler as client.
+     * Create a new rtp.RtpHandler as client.
      *
      * @param useFec Use FEC correction or not
      */
@@ -242,7 +244,7 @@ public class RtpHandler {
      */
     private void sendPacketWithError(DatagramPacket senddp, double lossRate, boolean fec) {
         String label;
-        if (fec) label = " fec ";
+        if (fec) label = " rtp ";
         else label = " media ";
         if (random.nextDouble() > lossRate) {
             logger.log(Level.FINE, "Send frame: " + label + " size: " + senddp.getLength());
@@ -304,7 +306,7 @@ public class RtpHandler {
             + " to " + packetList.get(packetList.size()-1).getsequencenumber());
 
         // Combine RTP packets to one JPEG image
-        //byte[] image = JpegFrame.combineToOneImage(packetList);
+        //byte[] image = rtp.JpegFrame.combineToOneImage(packetList);
         ArrayList<JpegFrame> jpeg = new ArrayList<>();
         packetList.forEach( rtp -> jpeg.add( JpegFrame.getFromRtpPayload( rtp.getpayload()) ) );
         JpegFrame jpegs = JpegFrame.combineToOneFrame( jpeg );

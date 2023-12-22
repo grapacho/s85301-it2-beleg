@@ -1,9 +1,11 @@
+package video;
+
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import video.VideoMetadata;
 
 /**
  * Parse metadata from an QuickTime file

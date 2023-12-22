@@ -1,3 +1,5 @@
+package rtp;
+
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.security.Key;
@@ -56,7 +58,7 @@ public class JpegEncryptionHandler {
     private int position = 0;
 
     /**
-     * Create a new JpegEncryptionHandler.
+     * Create a new rtp.JpegEncryptionHandler.
      *
      * @param key the key for encryption and decryption
      * @param salt salt for determining the input vector for encryption and decryption
