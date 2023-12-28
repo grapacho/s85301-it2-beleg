@@ -1,5 +1,7 @@
 package rtp;
 
+import static utils.ByteTasks.bytesToHex;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -209,7 +211,9 @@ public class JpegFrame {
         }
       } else if (Arrays.equals(marker, DRI_MARKER)) {
         jpegFrame.setDri(true);
-        jpegFrame.setRestartInterval(byteArrayToInt(Arrays.copyOf(data, 2)));
+        jpegFrame.setRestartInterval(byteArrayToInt( Arrays.copyOfRange(  data, 4, 6)));
+        logger.log(Level.FINEST, "JPEG: Restart-Interval: " + bytesToHex(data) );
+        logger.log(Level.FINE, "JPEG: Restart-Interval: " + jpegFrame.restartInterval );
       } else if (Arrays.equals(marker, SOS_MARKER)) {
         headerFinish = true;
       }
@@ -240,6 +244,7 @@ public class JpegFrame {
     jpegFrame.height = byteArrayToInt(Arrays.copyOfRange(payload, 7, 8)) * 8;
     if (jpegFrame.dri) { // Restart-Header is present
       jpegFrame.restartInterval = byteArrayToInt(Arrays.copyOfRange(payload, 8, 10));
+      logger.log(Level.FINE, "JPEG: Restart-Interval: " + jpegFrame.restartInterval);
     }
 
     final int offsetToQuantizationHeader = 8 + (jpegFrame.dri ? 4 : 0);
