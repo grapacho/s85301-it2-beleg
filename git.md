@@ -48,7 +48,13 @@ myrepo	      https://nutzer@github.com/HTWDD-RN/sXXXXX-yyy-beleg (push)
 * für den Zugriff auf Github ist ein Proxy notwendig, [Beispieldatei](gitconfig-beispiel.txt), diese muss in das S311-Home mit dem Namen `.gitconfig`
 * das Repository für den Beleg sollte in das Standardhome, da in dem S311-Home wenig Speicherplatz vorhanden ist
 * das Standardhome finden Sie unter: `/user/data/im99/s99999`
-
+* es ist u.U. sinnvoll einen Link auf diese Standardhome zu setzen:
+```
+cd /user/data/ia99/s12345
+mkdir Beleg
+cd
+ln -s /user/data/ia99/s12345/Beleg Beleg
+```
 
 ## Zusammenfassung
 * Im Bild unten ist der geschilderte Prozess zusammengefasst.
