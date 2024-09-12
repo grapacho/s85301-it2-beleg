@@ -8,6 +8,7 @@ import java.net.SocketException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -22,6 +23,8 @@ import java.util.logging.Logger;
  * @author Emanuel Günther
  */
 public class RtpHandler {
+
+
 
     public void setJitterBufferStartSize(int jitterBufferStartSize) {
         this.jitterBufferStartSize = jitterBufferStartSize;
@@ -60,6 +63,7 @@ public class RtpHandler {
     private boolean fecDecodingEnabled = false; // client side
     private HashMap<Integer, RtpPacket> mediaPackets = null;
     private int playbackIndex = -1;  // iteration index fo rtps for playback
+    private int startIndex;         // first RTP of a stream
     private int fecIndex;            // iteration index for fec correction
     private int tsReceive;           // Timestamp of last received media packet
     private int tsIndex;            // Timestamp index for rtps for playback
@@ -67,6 +71,7 @@ public class RtpHandler {
     private int tsAdd = 0;          // Timestamp add for rtps for playback
     private int jitterBufferStartSize = 25;      // size of the input buffer => start delay
     //private int jitterBufferSize;
+    private List<Integer> lostJpegSlices = null;
     private HashMap<Integer, List<Integer>> sameTimestamps = null;
     private HashMap<Integer, Integer> firstRtp= null; // first RTP of a jpeg-frame
     private HashMap<Integer, Integer> lastRtp= null; // last RTP of a jpeg-frame
@@ -302,6 +307,7 @@ public class RtpHandler {
             return null;
         } else logger.log(Level.FINE, "PLAY: RTP list size for rtp: " +playbackIndex + " " + packetList.size());
 
+        // TODO sometimes nullpointer exception
         logger.log(Level.FINER, "PLAY: get RTPs from " + packetList.get(0).getsequencenumber()
             + " to " + packetList.get(packetList.size()-1).getsequencenumber());
 
@@ -339,6 +345,14 @@ public class RtpHandler {
         return image;
     }
 
+    public List<Integer> getRtpList() {
+        return sameTimestamps.get(tsIndex);
+    }
+
+    public List<Integer> getLostJpegSlices() {
+        return lostJpegSlices;
+    }
+
     /**
      * Construct a list of RTP packets which contain the data of one jpeg image.
      *
@@ -361,6 +375,7 @@ public class RtpHandler {
         // looking for last RTP of a jpeg-frame
         int snLast = 0;
         List<Integer> tsList = sameTimestamps.get(tsIndex);     // list of RTPs with this TS
+        Collections.sort(tsList);                               // sort list
         if (lastRtp.get(tsIndex) != null) {
             snLast = lastRtp.get(tsIndex);                      // last RTP found in list
         } else if (firstRtp.get(tsIndex + tsAdd) != null) {
@@ -370,16 +385,19 @@ public class RtpHandler {
         } else {
             return packetList;                                  // only first RTP used
         }
-        // TODO if list is fragmented return null or implement JPEG error concealment
+
+        lostJpegSlices = new ArrayList<>(); // List of missing RTPs (JPEG slices)
         logger.log(Level.FINER, "PLAY: get RTPs from " + snFirst + " to " + snLast);
+        boolean lost = false;
         for (int i = snFirst+1; i <= snLast; i++) {
             packet = obtainMediaPacket(i);
             if (packet == null) {
-                statistics.framesPartLost++;
-                break;      // TODO stops after first missing RTP
+                lost = true;
+                lostJpegSlices.add(i-snFirst);
             }
-            packetList.add(packet);
+            else   packetList.add(packet);
         }
+        if (lost) statistics.framesPartLost++;
         playbackIndex = snLast;
         return packetList;
     }
@@ -476,7 +494,9 @@ public class RtpHandler {
 
                         }
                     }
-                    fecIndex = lastSeqNr - fecHandler.getFecGroupSize()-5;
+                    // TODO: check if this is correct
+                    int newfec = lastSeqNr - fecHandler.getFecGroupSize()-5;
+                    if (newfec > fecIndex) fecIndex = newfec;
                 } catch (IOException e) {    // SocketException is part of IOException
                     if (interrupted()) {
                         logger.log(Level.FINE, "RTP-Receiver interrupted");
@@ -514,6 +534,7 @@ public class RtpHandler {
         // store the first Timestamp
         if (playbackIndex == -1) {
             playbackIndex = seqNr - 1;
+            //startIndex = seqNr;
             fecIndex = seqNr;
             tsStart = packet.gettimestamp();
             tsIndex = tsStart;

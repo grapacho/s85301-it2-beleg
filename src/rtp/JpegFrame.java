@@ -2,9 +2,11 @@ package rtp;
 
 import static utils.ByteTasks.bytesToHex;
 
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -142,8 +144,10 @@ public class JpegFrame {
   }
 
   /**
-   * Analysiert ein eingehendes JPEG-Bild und extrahiert die relevanten Informationen für die Erstellung der RFC-2435 konformen RTP-Payload Struktur.
-   *
+   * Analysiert ein eingehendes JPEG-Bild und extrahiert die relevanten Informationen
+   * für die Erstellung der RFC-2435 konformen RTP-Payload Struktur.
+   * DQT, SOF0 (Baseline DCT) und DRI werden dabei ausgewertet, der Rest ignoriert.
+   * Payload nach SOS-Marker wird als Payload gespeichert.
    * @param jpegBytes JPEG-Bild als Byte Array (inklusive SOI und EOI)
    * @return {@link JpegFrame}
    */
@@ -176,6 +180,7 @@ public class JpegFrame {
         /* Quantisierungstabelle (QT) ist 64 Byte lang. */
         jpegFrame.setNbQTables(section_size / 65); // Anzahl QT
         jpegFrame.setQTables(Arrays.copyOfRange(section_body, 1, jpegFrame.nbQTables * 65)); // Daten der (QT)
+
       } else if (Arrays.equals(marker, SOF0_MARKER)) {
         // Höhe und Breite des Bildes.
         final int height = byteArrayToInt(Arrays.copyOfRange(section_body, 1, 3));
@@ -214,12 +219,14 @@ public class JpegFrame {
         jpegFrame.setRestartInterval(byteArrayToInt( Arrays.copyOfRange(  data, 4, 6)));
         logger.log(Level.FINEST, "JPEG: Restart-Interval: " + bytesToHex(data) );
         logger.log(Level.FINE, "JPEG: Restart-Interval: " + jpegFrame.restartInterval );
+
       } else if (Arrays.equals(marker, SOS_MARKER)) {
         headerFinish = true;
       }
 
       data = Arrays.copyOfRange(data, 2 + section_size, data.length);
     }
+
     jpegFrame.setPayload(data);
     return jpegFrame;
   }
@@ -228,7 +235,7 @@ public class JpegFrame {
    * Erstellt aud den Payloaddaten eines RTP-Paketes eine neue Instanz des rtp.JpegFrame.
    *
    * @param payload payload des RTP-Pakets
-   * @return ertslltes rtp.JpegFrame
+   * @return erstelltes rtp.JpegFrame
    */
   public static JpegFrame getFromRtpPayload(final byte[] payload) {
     final JpegFrame jpegFrame = new JpegFrame();
@@ -381,7 +388,21 @@ public class JpegFrame {
   public List<byte[]> getRtpPayload() {
     List<byte[]> rtpPayload = new ArrayList<>();  // Liste der Pakete erstellen
     offset = 0;
+
     do {
+      // MTU berechnen im Fall von Restart-Header und mehreren Paketen mit ganzzahligen Intervallen
+      if (restartInterval > 0) {
+        MTU = 1400;
+        for (int i = offset+2; i < payload.length-2; i += 1) {
+          if (  payload[i] == -1 && Byte.toUnsignedInt(payload[i+1]) >= 0xD0 &&
+                        Byte.toUnsignedInt(payload[i+1]) <= 0xD7) {
+            MTU = i - offset;
+            logger.log(Level.FINER, "JPEG: MTU: " + MTU);
+            break;
+          }
+        }
+      }
+
       rtpPayload.add( getAsRfc2435Bytes() );
       offset += MTU;
     } while (offset < payload.length);

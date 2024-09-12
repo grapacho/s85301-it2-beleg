@@ -5,6 +5,7 @@ usage: java Client [Server hostname] [Server RTSP listening port] [Video file re
 
 ---------------------- */
 
+import java.awt.image.BufferedImage;
 import java.net.*;
 import java.text.DecimalFormat;
 import java.util.*;
@@ -17,6 +18,7 @@ import rtp.ReceptionStatistic;
 import rtp.RtpHandler;
 import rtsp.Rtsp;
 import utils.CustomLoggingHandler;
+import java.awt.Image;
 
 public class Client  {
   int iteration = 0;  // for displaying statistics
@@ -26,7 +28,7 @@ public class Client  {
   private static RtpHandler rtpHandler;
   static int RTP_RCV_PORT = 25000; // port where the client will receive the RTP packets
   // static int FEC_RCV_PORT = 25002; // port where the client will receive the RTP packets
-  final static Integer JITTER_BUFFER_SIZE = 25; // size of the buffer in frames
+  final static Integer JITTER_BUFFER_SIZE = 10; // size of the buffer in frames
 
   // ********************** RTSP variables ************************
   private static Rtsp rtsp;
@@ -160,12 +162,8 @@ public class Client  {
       }
 
       logger.log(Level.FINER, "----------------- Play timer --------------------");
-      byte[] payload = rtpHandler.nextPlaybackImage();
-      if (payload == null) {
-          return;
-      }
-
-      view.iconLabel.setIcon( JpegDisplay.nextPlaybackImage( payload, rs) );
+      BufferedImage bi = JpegDisplay.nextPlaybackImage( rtpHandler, rs, view.checkBoxEco.isSelected());
+      if (bi != null)  view.iconLabel.setIcon( new ImageIcon(bi) );
     }
 
 

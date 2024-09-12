@@ -29,6 +29,7 @@ public class ClientView  {
   JPanel statsPanel = new JPanel();
   JPanel inputPanel = new JPanel();
   JPanel pufferPanel = new JPanel();
+  JPanel fecPanel = new JPanel();
   JLabel iconLabel = new JLabel(); // Image
   JLabel statusLabel = new JLabel("Status: "); // Statistics
   JLabel pufferLabel = new JLabel("Puffer: "); // Statistics
@@ -43,6 +44,7 @@ public class ClientView  {
   JProgressBar progressBuffer = new JProgressBar(0, 50);
   JProgressBar progressPosition = new JProgressBar();
   JCheckBox checkBoxFec = new JCheckBox("nutze FEC");
+  JCheckBox checkBoxEco = new JCheckBox("nutze ECO");
   ButtonGroup encryptionButtons = null;
 
   Client.ButtonListener client;
@@ -89,7 +91,10 @@ public class ClientView  {
     statsPanel.add(statsLabel2);
     statsPanel.add(fecLabel);
     statsPanel.add(fecLabel2);
-    statsPanel.add(checkBoxFec);
+    fecPanel.add(checkBoxFec);
+    fecPanel.add(checkBoxEco);
+    //statsPanel.add(checkBoxFec);
+    statsPanel.add(fecPanel);
     pufferPanel.add(new JLabel("Puffergröße: "));
     pufferPanel.add(pufferNumber);
     statsPanel.add(pufferPanel);
