@@ -4,8 +4,8 @@ Die Aufgaben beziehen sich auf den Beleg Videostreaming für das Modul Internett
 ## Aufgaben
 
 ### 0. Vorarbeiten
-1. Sie clonen das Projekt nach Anleitung aus [Git](git.md).
-2. Sie erstellen die "leeren" Klassen `rtsp.Rtsp`, `rtp.RtpPacket` und `rtp.FECHandler` und leiten diese aus den abstrakten Klassen `rtsp.RtspDemo`, `rtp.RtpPacketDemo` und `FECHandlerDemo` ab (Stichwort `extends`).  Das Projekt sollte danach kompilierbar und ausführbar sein.  
+1. Sie clonen das Projekt aus dem Repository, Anleitung: [Git](git.md).
+2. Sie erstellen die "leeren" Klassen `rtsp.Rtsp`, `rtp.RtpPacket`, `rtp.FECHandler` und `JpegDisplay` und leiten diese aus den abstrakten Klassen `rtsp.RtspDemo`, `rtp.RtpPacketDemo`, `FECHandlerDemo` und `JpegDisplayDemo` ab (Stichwort `extends`).  Das Projekt sollte danach kompilierbar und ausführbar sein.  
 Unter einigen IDEs z.B. IntelliJ können Sie die Klassenrümpfe automatisch erstellen lassen mittels: Generate Contructors sowie implement Methods
 3. Sie konfigurieren die Kommandozeilenparameter für Client und Server wie in der [Projektbeschreibung](Projektbeschreibung.md#2.-programmstart) beschrieben.
 4. Sie erstellen in Ihrem Gitverzeichnis ein Unterverzeichnis mit dem Namen `videos` und legen in dieses das Beispielvideo `htw.mjpeg`, siehe Praktikumsdateien auf der HTW-IT2-Homepage.
@@ -35,7 +35,7 @@ Nach dem Setzen des korrekten RTP-Headers sollte das Demovideo abspielbar sein. 
 
 ### 4. Auswertung der Fehlerstatistiken ohne Fehlerkorrektur
 Sie können an der GUI des Servers eine Paketfehlerwahrscheinlichkeit einstellen und damit Netzwerkfehler simulieren. Probieren Sie verschiedene Einstellungen aus und betrachten Sie das Ergebnis in der Videoanzeige. 
-Ab welcher Paketfehlerwahrscheinlichkeit wird die Videoanzeige spürbar beeinträchtigt?
+Dokumentieren Sie, ab welcher Paketfehlerwahrscheinlichkeit die Videoanzeige spürbar beeinträchtigt wird.
 
 Das RTP-Streaming ist so konfiguriert, dass ein JPEG-Bild in mehrere RTPs verpackt wird. 
 Berechnen die Wahrscheinlichkeit für den Verlust eines Bildes in Abhängigkeit von der Kanalverlustrate, wenn pro Bild 1, 2, 5, 10 oder 20 RTPs versendet werden.
@@ -51,15 +51,13 @@ Statistik am Empfänger:
 6. verlorene Bilder
 
 
-
-
 ### 5. Implementierung des FEC-Schutzes
 Implementieren Sie einen FEC-Schutz gemäß [RFC 5109](https://www.ietf.org/rfc/rfc5109.txt).
 Der Server mit FEC-Schutz soll kompatibel zu Clients ohne FEC-Verfahren sein! Nutzen Sie dazu das Feld Payloadtype des RTP-Headers (PT=127 für FEC-Pakete).
 
 Um nicht die komplette FEC-Funktionalität selbst entwickeln zu müssen, werden Ihnen zwei Klassen bereit gestellt:
-1. [FecPacket](src/FECpacket.java): dies ist eine aus RtpPacket abgeleitete Klasse mit der erweiterten Funktionalität für das Handling von FEC-Paketen (vollständig implementiert)
-2. [FecHandler](src/Fechandler.java): diese Klasse ist zuständig für die server- und clientseitige FEC-Bearbeitung unter Nutzung von FecPacket (teilweise implementiert)
+1. [FecPacket](src/rtp.FECpacket.java): dies ist eine aus RtpPacket abgeleitete Klasse mit der erweiterten Funktionalität für das Handling von FEC-Paketen (vollständig implementiert)
+2. [FecHandler](src/rtp.Fechandler.java): diese Klasse ist zuständig für die server- und clientseitige FEC-Bearbeitung unter Nutzung von FecPacket (teilweise implementiert)
    * Server: Kombination mehrerer Medienpakete zu einem FEC-Paket
    * Client: Jitterpuffer für empfangene Medien- und FEC-Pakete, Bereitstellung des aktuellen Bildinhaltes in Form einer Liste von RTP-Paketen mit gleichem TimeStamp.
 
@@ -120,19 +118,19 @@ Hier einige Tipps für die Fehlersuche:
 
 ### 6. Analyse der Leistungsfähigkeit des implementierten FEC-Verfahrens
 #### 6.1. Parameterwahl
-Finden Sie den optimalen Wert für k bei einer Kanalverlustrate von 10%. Optimal bedeutet in diesem Fall eine subjektiv zufriedenstellende Bildqualität bei geringstmöglicher Redundanz.
+Untersuchen Sie, welche Verlustrate der RTP-Pakete bei einer Kanalverlustrate von 10% beim Einsatz von FEC (k=2) entsteht.
 
 #### 6.2. Bestimmung der Verlustraten mittels Simulation
-Tragen Sie die mittels Messung (Simulation) zu gewinnenden Paketverlustwahrscheinlichkeiten nach FEC (Restfehler) für verschiedene Kanalfehlerraten (Pe = 0...1) und verschiedene Gruppengrößen (k=2, 6, 12, 48) in dem bereits vorhandenen Gnuplot-Diagramm auf. Besonders interressant ist der Bereich mit geringen Fehleraten (0 -- 0,2). Die Restfehlerwahrscheilichkeit können Sie direkt in den Statistikangaben ablesen (Ratio nach FEC). Sie müssen die Simulation nicht immer bis zum Ende ablaufen lassen, der Ergebniswert sollte allerdings stabil sein und das Ratio vor FEC der gewüschten Kanalfehlerrate entsprechen.
+Tragen Sie die mittels Messung (Simulation) zu gewinnenden Paketverlustwahrscheinlichkeiten nach FEC (Restfehler) für verschiedene Kanalfehlerraten (Pe = 0...1) und verschiedene Gruppengrößen (k=2, 6, 12, 48) in dem bereits vorhandenen Gnuplot-Diagramm auf. Besonders interressant ist der Bereich mit geringen Fehleraten (0 -- 0,2). Die Restfehlerwahrscheinlichkeit können Sie direkt in den Statistikangaben ablesen (Ratio nach FEC). Sie müssen die Simulation nicht immer bis zum Ende ablaufen lassen, der Ergebniswert sollte allerdings stabil sein und das Ratio vor FEC der gewüschten Kanalfehlerrate entsprechen.
 
 #### 6.3. Abschätzung der zu erwartenden Verlustraten mittels theoretischer Betrachtung
 Versuchen Sie, mathematisch die Paketverlustwahrscheinlichkeit für die obigen Gruppengrößen zu bestimmen und ebenfalls grafisch darzustellen. Sie können von dem Zusammenhang zwischen Guppenfehler und Kanalfehler ausgehen (Folie FEC-Einführung Seite 11). Zu beachten ist allerdings, dass wir hier die Paketverlustwahrscheinlichkeit und nicht die Gruppenverlustwahrscheinlichkeit benötigen. Eine Näherungsformel für kleine Fehlerraten ist hier ausreichend.
 
-Stellen Sie weiterhin die Bildverlustwahrscheinlichkeit dar, wenn von folgenden hypothetischen Übertragungsmodies ausgegangen wird: 1 RTP/Bild, 5 RTPs/Bild und 20 RTPs/Bild.
+#### 6.4 Abschätzung der Bilddefektwahrscheinlichkeit
+Stellen Sie weiterhin die Wahrscheinlichkeit für einen Bilddefekt dar, wenn von folgenden hypothetischen Übertragungsmodies ausgegangen wird: 1 RTP/Bild, 5 RTPs/Bild und 20 RTPs/Bild.
 
-Für die eigentliche Berechnung können Sie statt Gnuplot auch R oder ein anderes Tool nutzen.
+Für die eigentlichen Berechnungen können Sie statt Gnuplot auch R oder ein anderes Tool nutzen.
 Diskutieren Sie eventuelle Unterschiede der praktisch und theoretisch ermittelten Ergebnisse.
-
 
 Für diese Aufgabe unterstützt Sie die Statistik am Empfänger mit dem Werten:
 1. aktuelle Puffergröße
@@ -142,11 +140,18 @@ Für diese Aufgabe unterstützt Sie die Statistik am Empfänger mit dem Werten:
 5. Abspielzähler (Pakete / Bilder)
 6. verlorene Bilder
 
-### 7. Kompatibilität des Demoprojektes
+### 7. Fehlerkaschierung
+Damit trotz Fehlerkorrektur fehlende Pakete nicht zu einem störenden Bild führen, ist eine Fehlerkaschierung zu implementieren.
+Dazu dient die Methode setTransparency der Klasse JpegView. Dieser wird das aktuelle Bild und das Vorgängerbidl übergeben, sowie eine Liste an fehlenden Bildteilen. 
+Versuchen Sie anhand dieser Informationen das aktuelle Bild so zu modifizieren, dass Fehler möglichst wenig stören.
+
+Bei welcher Paketfehlerwahrscheinlichkeit ist das Video mit Fehlerkaschierung und FEC (k=2) noch in guter Qualität darstellbar?
+
+### 8. Kompatibilität des Demoprojektes
 Prüfen Sie die Kompatibilität des Clients und Servers mit frei verfügbaren RTSP-Playern/-Servern (z.B. VLC-Player oder FFMPEG) und versuchen Sie eventuelle Probleme zu analysieren. Dokumentieren Sie die Ergebnisse.
 
-### 8. Vorschläge
-Manchen Sie konkrete Vorschläge zur Verbesserung des Belegs.
+### 9. Vorschläge
+Manchen Sie konkrete Vorschläge um den Beleg in Zukunft interessanter zu machen.
 
 ### Hinweis 
 Falls Sie ein anderes Video nutzen wollen, ist dieses in das MJPEG-Format zu konvertieren.
