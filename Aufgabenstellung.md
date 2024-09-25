@@ -2,13 +2,20 @@
 Die Aufgaben beziehen sich auf den Beleg Videostreaming für das Modul Internettechnologien 2.
 
 ## Aufgaben
-
+Im weiteren wird davon ausgegangen, dass die IDE Intellij verwendet wird.
 ### 0. Vorarbeiten
 1. Sie clonen das Projekt aus dem Repository, Anleitung: [Git](git.md).
-2. Sie erstellen die "leeren" Klassen `rtsp.Rtsp`, `rtp.RtpPacket`, `rtp.FECHandler` und `JpegDisplay` und leiten diese aus den abstrakten Klassen `rtsp.RtspDemo`, `rtp.RtpPacketDemo`, `FECHandlerDemo` und `JpegDisplayDemo` ab (Stichwort `extends`).  Das Projekt sollte danach kompilierbar und ausführbar sein.  
+2. Sie konfigurieren die Projektabhängigkeiten in der IDE:
+  * Projekt-Structure -> Modules -> Reiter Dependencies
+  * Add (+) -> 2 Library -> Maven
+  * Markierung Downloads to lib
+  * Abhängigkeiten:
+    * Webcam: com.github.sarxos:webcam-capture:0.3.12
+    * JUnit:  org.junit.jupiter:junit-jupiter:5.9.0
+3. Sie erstellen die "leeren" Klassen `rtsp.Rtsp`, `rtp.RtpPacket`, `rtp.FECHandler` und `JpegDisplay` und leiten diese aus den abstrakten Klassen `rtsp.RtspDemo`, `rtp.RtpPacketDemo`, `FECHandlerDemo` und `JpegDisplayDemo` ab (Stichwort `extends`).  Das Projekt sollte danach kompilierbar und ausführbar sein.  
 Unter einigen IDEs z.B. IntelliJ können Sie die Klassenrümpfe automatisch erstellen lassen mittels: Generate Contructors sowie implement Methods
-3. Sie konfigurieren die Kommandozeilenparameter für Client und Server wie in der [Projektbeschreibung](Projektbeschreibung.md#2.-programmstart) beschrieben.
-4. Sie erstellen in Ihrem Gitverzeichnis ein Unterverzeichnis mit dem Namen `videos` und legen in dieses das Beispielvideo `htw.mjpeg`, siehe Praktikumsdateien auf der HTW-IT2-Homepage.
+4. Sie konfigurieren die Kommandozeilenparameter für Client und Server wie in der [Projektbeschreibung](Projektbeschreibung.md#2.-programmstart) beschrieben.
+5. Sie erstellen in Ihrem Gitverzeichnis ein Unterverzeichnis mit dem Namen `videos` und legen in dieses das Beispielvideo `htw.mjpeg`, siehe Praktikumsdateien auf der HTW-IT2-Homepage.
 
 
 ### 1. RTSP-Protokoll: Client-Methoden
@@ -140,17 +147,22 @@ Für diese Aufgabe unterstützt Sie die Statistik am Empfänger mit dem Werten:
 5. Abspielzähler (Pakete / Bilder)
 6. verlorene Bilder
 
-### 7. Fehlerkaschierung
-Damit trotz Fehlerkorrektur fehlende Pakete nicht zu einem störenden Bild führen, ist eine Fehlerkaschierung zu implementieren.
-Dazu dient die Methode setTransparency der Klasse JpegView. Dieser wird das aktuelle Bild und das Vorgängerbidl übergeben, sowie eine Liste an fehlenden Bildteilen. 
-Versuchen Sie anhand dieser Informationen das aktuelle Bild so zu modifizieren, dass Fehler möglichst wenig stören.
+### 7. Generierung von Restart-Markern
+Nutzen Sie das bereitgestellte Jpeg-Bild und erzeugen Sie Restart-Marker für jede MCU-Zeile in diesem Bild.
+Nutzen Sie hierfür das auf den Praktikumsrechnern vorhandene Tool `jpegtran`.
+Manipulieren Sie mit einem Hexeditor (z.B. bless) eine Zeile im Bild und vergleichen Sie sich das Ergebnis mit dem Originalbild ohne Restart-Marker, bei welchen Sie ebenfalls Manipulationen vorgenommen haben.
+Welche Erkenntnis können Sie aus dem Vergelich gewinnen?
 
+### 8. Fehlerkaschierung
+Damit trotz Fehlerkorrektur fehlende Pakete nicht zu einem störenden Bild führen, ist eine Fehlerkaschierung zu implementieren.
+Dazu dient die Methode setTransparency der Klasse JpegView. Dieser wird das aktuelle Bild und das Vorgängerbild übergeben, sowie eine Liste an fehlenden Bildteilen. Dies funktioniert allerdings nur mit MJPEG-Videos, welche Restart-Marker behinhalten.
+Versuchen Sie anhand dieser Informationen das aktuelle Bild so zu modifizieren, dass Fehler möglichst wenig stören.
 Bei welcher Paketfehlerwahrscheinlichkeit ist das Video mit Fehlerkaschierung und FEC (k=2) noch in guter Qualität darstellbar?
 
-### 8. Kompatibilität des Demoprojektes
+### 9. Optional: Kompatibilität des Demoprojektes
 Prüfen Sie die Kompatibilität des Clients und Servers mit frei verfügbaren RTSP-Playern/-Servern (z.B. VLC-Player oder FFMPEG) und versuchen Sie eventuelle Probleme zu analysieren. Dokumentieren Sie die Ergebnisse.
 
-### 9. Vorschläge
+### 10. Optional: Vorschläge
 Manchen Sie konkrete Vorschläge um den Beleg in Zukunft interessanter zu machen.
 
 ### Hinweis 
