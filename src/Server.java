@@ -72,11 +72,12 @@ public class Server extends JFrame implements ActionListener, ChangeListener {
     addWindowListener(
         new WindowAdapter() {
           public void windowClosing(WindowEvent e) {
-            timer.stop();
+            if (timer != null) timer.stop();
             System.exit(0);
           }
         });
 
+    
     // GUI:
     label = new JLabel("Send frame #        ", JLabel.CENTER);
     stateLabel = new JLabel("State:         ",JLabel.CENTER);

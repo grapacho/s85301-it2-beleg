@@ -10,7 +10,8 @@ video=$3
 
 host=localhost
 port=8554
-#video=htw
+video=htw-r1.mjpeg
+url=rtsp://${host}:${port}/$video
 
 src=src
 bin=out/production/RTSP-Streaming
@@ -22,4 +23,4 @@ bin=out/production/RTSP-Streaming
 
 # Start
 echo "start classes..."
-java -cp $bin  Client $host $port $video 
+java -cp $bin  Client $url
