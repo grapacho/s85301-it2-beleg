@@ -36,8 +36,8 @@ Testen lässt sich die korrekte Zuordnung mittels: `git remote -vv`
 ```
 htw-upstream	https://nutzer@github.com/HTWDD-RN/RTSP-Streaming (fetch)
 htw-upstream	https://nutzer@github.com/HTWDD-RN/RTSP-Streaming (push)
-myrepo	      https://nutzer@github.com/HTWDD-RN/sXXXXX-yyy-beleg (fetch)
-myrepo	      https://nutzer@github.com/HTWDD-RN/sXXXXX-yyy-beleg (push)
+myrepo	        https://nutzer@github.com/HTWDD-RN/sXXXXX-yyy-beleg (fetch)
+myrepo	        https://nutzer@github.com/HTWDD-RN/sXXXXX-yyy-beleg (push)
 ```
 
 ## Zusammenfassung
@@ -49,7 +49,7 @@ myrepo	      https://nutzer@github.com/HTWDD-RN/sXXXXX-yyy-beleg (push)
 <!---  <img src="images/git.png" width="100">   --->
 
 
-## Besonderheiten für das Labor S311 (varaltet): 
+## Besonderheiten für das Labor S311 (veraltet): 
 * Home des Nutzers im Labor ist nicht das Standardhome
 * für den Zugriff auf Github ist ein Proxy notwendig, [Beispieldatei](gitconfig-beispiel.txt), diese muss in das S311-Home mit dem Namen `.gitconfig`
 * das Repository für den Beleg sollte in das Standardhome, da in dem S311-Home wenig Speicherplatz vorhanden ist
