@@ -9,7 +9,6 @@ Den Namen des zu klonenden Repositories finden Sie auf der Vorlesungswebsite.
 
 Die Fakultät Informatik stellt Ihnen (unabhängig vom RZ) ein Homeverzeichnis bereit, welches unter /user/data/i[a,m,w][0,1,2][0-9]/sXXXXX gemountet ist. Auf dieses können Sie im Labor S311 einfach zugreifen.
 
-
 **Hinweis:** Anstatt der manuellen Erstellung des Repositories und der Verknüpfung mit dem Aufgaben-Repository im nächsten Schritt könnte man auch die Fork-Funktionalität von Github nutzen um das eigenes Repository zu erstellen, siehe [Github](https://docs.github.com/en/get-started/quickstart/fork-a-repo).  Leider funktioniert dieser Ansatz für unseren Beleg nicht, da wir private Repositories benötigen, welche beim einem Fork nicht angeboten werden.
 
 
@@ -41,9 +40,16 @@ myrepo	      https://nutzer@github.com/HTWDD-RN/sXXXXX-yyy-beleg (fetch)
 myrepo	      https://nutzer@github.com/HTWDD-RN/sXXXXX-yyy-beleg (push)
 ```
 
+## Zusammenfassung
+* Im Bild unten ist der geschilderte Prozess zusammengefasst.
+* Weitere Informationen zu Nutzung von [Git](git-details.md).
 
 
-## Besonderheiten für das **Labor S311**: 
+![GitHub-Workflow](/images/git.png)
+<!---  <img src="images/git.png" width="100">   --->
+
+
+## Besonderheiten für das Labor S311 (varaltet): 
 * Home des Nutzers im Labor ist nicht das Standardhome
 * für den Zugriff auf Github ist ein Proxy notwendig, [Beispieldatei](gitconfig-beispiel.txt), diese muss in das S311-Home mit dem Namen `.gitconfig`
 * das Repository für den Beleg sollte in das Standardhome, da in dem S311-Home wenig Speicherplatz vorhanden ist
@@ -55,11 +61,3 @@ mkdir Beleg
 cd
 ln -s /user/data/ia99/s12345/Beleg Beleg
 ```
-
-## Zusammenfassung
-* Im Bild unten ist der geschilderte Prozess zusammengefasst.
-* Weitere Informationen zu Nutzung von [Git](git-details.md).
-
-
-![GitHub-Workflow](/images/git.png)
-<!---  <img src="images/git.png" width="100">   --->
