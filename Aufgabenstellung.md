@@ -151,11 +151,11 @@ Für diese Aufgabe unterstützt Sie die Statistik am Empfänger mit dem Werten:
 Nutzen Sie das bereitgestellte Jpeg-Bild und erzeugen Sie Restart-Marker für jede MCU-Zeile in diesem Bild.
 Nutzen Sie hierfür das auf den Praktikumsrechnern vorhandene Tool `jpegtran`.
 Manipulieren Sie mit einem Hexeditor (z.B. bless oder ghex) eine Zeile im Bild und vergleichen Sie sich das Ergebnis mit dem Originalbild ohne Restart-Marker, bei welchen Sie ebenfalls Manipulationen vorgenommen haben.
-Welche Erkenntnis können Sie aus dem Vergelich gewinnen?
+Welche Erkenntnis können Sie aus dem Vergleich gewinnen?
 
 ### 8. Fehlerkaschierung
 Damit trotz Fehlerkorrektur fehlende Pakete nicht zu einem störenden Bild führen, ist eine Fehlerkaschierung zu implementieren.
-Dazu dient die Methode setTransparency der Klasse `JpegDisplay` (abgeleitet von `JpegDisplayDemo`). Dieser wird das aktuelle Bild und das Vorgängerbild übergeben, sowie eine Liste an fehlenden Bildteilen. Dies funktioniert allerdings nur mit MJPEG-Videos, welche Restart-Marker behinhalten.
+Dazu dient die Methode setTransparency der Klasse `JpegDisplay` (abgeleitet von `JpegDisplayDemo`). Dieser wird das aktuelle Bild und das Vorgängerbild übergeben, sowie eine Liste an fehlenden Bildteilen. Dies funktioniert allerdings nur mit MJPEG-Videos, welche Restart-Marker beinhalten.
 Versuchen Sie anhand dieser Informationen das aktuelle Bild so zu modifizieren, dass Fehler möglichst wenig stören.
 Bei welcher Paketfehlerwahrscheinlichkeit ist das Video mit Fehlerkaschierung und FEC (k=2) noch in guter Qualität darstellbar?
 
