@@ -332,7 +332,7 @@ abstract class RtspDemo {
     // o=  (owner/creator and session identifier).
     // s=  (session name)
     rtspBody.write("v=0" + CRLF);
-    rtspBody.write("o=- 0 0 IN IP4 0.0.0.0" + CRLF);
+    rtspBody.write("o=- 0 0 +IN IP4 0.0.0.0" + CRLF);
     rtspBody.write("s=RTSP-Streaming" + CRLF);
     rtspBody.write("i=" + CRLF);
 
