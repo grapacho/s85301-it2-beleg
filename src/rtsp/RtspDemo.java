@@ -334,7 +334,7 @@ abstract class RtspDemo {
     rtspBody.write("v=0" + CRLF);
     rtspBody.write("o=- 0 0 +IN IP4 0.0.0.0" + CRLF);
     rtspBody.write("s=RTSP-Streaming" + CRLF);
-    rtspBody.write("i=" + CRLF);
+    rtspBody.write("i=HTW-Beispielvideo" + CRLF);
 
     // Time description
     // t= (time the session is active)
@@ -344,8 +344,8 @@ abstract class RtspDemo {
 
     // Media description
     // m=  (media name and transport address)
-    rtspBody.write("m=video ..."  + CRLF);
-    rtspBody.write("a=control ..." + CRLF);
+    rtspBody.write("m=video "+ "8554" + "RTP/AVP"+ MJPEG_TYPE + CRLF);
+    rtspBody.write("a=control:streamid=" + "1" + CRLF);
     rtspBody.write("a=rtpmap:" + MJPEG_TYPE + " JPEG/90000" + CRLF);
     // rtspBody.write("a=mimetype:string;\"video/mjpeg\"" + CRLF);
     rtspBody.write("a=framerate:" + meta.getFramerate() + CRLF);
