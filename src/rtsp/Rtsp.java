@@ -57,15 +57,15 @@ public class Rtsp extends RtspDemo {
             return false;
         }
         RTSPSeqNb++;  // increase RTSP sequence number for every RTSP request sent
-        send_RTSP_request("SETUP");
+        send_RTSP_request("TEARDOWN");
         // Wait for the response
         logger.log(Level.INFO, "Wait for response...");
         if (parse_server_response() != 200) {
             logger.log(Level.WARNING, "Invalid Server Response");
             return false;
         } else {
-            state = State.READY;
-            logger.log(Level.INFO, "New RTSP state: READY\n");
+            state = State.INIT;
+            logger.log(Level.INFO, "New RTSP state: INIT\n");
             return true;
         }
     }
