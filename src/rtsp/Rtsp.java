@@ -52,21 +52,49 @@ public class Rtsp extends RtspDemo {
     @Override
     public boolean teardown() {
 
-        if (state != State.INIT && (state == State.READY || state == State.PLAYING)) {
-            logger.log(Level.WARNING, "RTSP state: " + state);
+//        if (state != State.INIT && (state == State.READY || state == State.PLAYING)) {
+//            logger.log(Level.WARNING, "RTSP state: " + state);
+//            return false;
+//        }
+//        RTSPSeqNb++;  // increase RTSP sequence number for every RTSP request sent
+//        send_RTSP_request("TEARDOWN");
+//        // Wait for the response
+//        logger.log(Level.INFO, "Wait for response...");
+//        if (parse_server_response() != 200) {
+//            logger.log(Level.WARNING, "Invalid Server Response");
+//            return false;
+//        } else {
+//            state = State.INIT;
+//            logger.log(Level.INFO, "New RTSP state: INIT\n");
+//            return true;
+//        }
+        if (state == State.INIT) {
+            logger.log(Level.WARNING, "Invalid state for TEARDOWN: " + state);
             return false;
         }
-        RTSPSeqNb++;  // increase RTSP sequence number for every RTSP request sent
+
+        RTSPSeqNb++;  // Increase RTSP sequence number for each request
         send_RTSP_request("TEARDOWN");
-        // Wait for the response
-        logger.log(Level.INFO, "Wait for response...");
+
+        // Wait for response
+        logger.log(Level.INFO, "Waiting for TEARDOWN response...");
         if (parse_server_response() != 200) {
-            logger.log(Level.WARNING, "Invalid Server Response");
+            logger.log(Level.WARNING, "Invalid Server Response for TEARDOWN");
             return false;
         } else {
+            // Reset state to INIT
             state = State.INIT;
-            logger.log(Level.INFO, "New RTSP state: INIT\n");
-            return true;
+            logger.log(Level.INFO, "New RTSP state: INIT");
+
+            // Close the connection
+            try {
+                RTSPsocket.close();
+                logger.log(Level.INFO, "RTSP socket closed");
+                return true;
+            } catch (Exception ex) {
+                logger.log(Level.SEVERE, "Failed to close RTSP socket: " + ex);
+                return false;
+            }
         }
     }
 

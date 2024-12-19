@@ -1,0 +1,7 @@
+Aufgabe 4:
+Schon bei einer Paketfehlerwahrscheinlichkeit von ca. 2% merkt man die Verluste und ab 10% ist es dann deutlich störend.
+
+
+Aufgabe 6.1:
+Verlustrate der RTP-Pakete bei einer Kanalverlustrate von 10% beim Einsatz von FEC (k=2): 0,024 => 2,4%
+
