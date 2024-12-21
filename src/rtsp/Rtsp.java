@@ -7,6 +7,14 @@ import java.net.URI;
 import java.util.logging.Level;
 
 public class Rtsp extends RtspDemo {
+    public Rtsp(URI url, int rtpRcvPort) {
+        super(url, rtpRcvPort);
+    }
+
+    public Rtsp(BufferedReader RTSPBufferedReader, BufferedWriter RTSPBufferedWriter) {
+        super(RTSPBufferedReader, RTSPBufferedWriter);
+    }
+
     @Override
     public boolean play() {
         if (state != State.READY) {
@@ -52,49 +60,37 @@ public class Rtsp extends RtspDemo {
     @Override
     public boolean teardown() {
 
-//        if (state != State.INIT && (state == State.READY || state == State.PLAYING)) {
-//            logger.log(Level.WARNING, "RTSP state: " + state);
-//            return false;
-//        }
-//        RTSPSeqNb++;  // increase RTSP sequence number for every RTSP request sent
-//        send_RTSP_request("TEARDOWN");
-//        // Wait for the response
-//        logger.log(Level.INFO, "Wait for response...");
-//        if (parse_server_response() != 200) {
-//            logger.log(Level.WARNING, "Invalid Server Response");
-//            return false;
-//        } else {
-//            state = State.INIT;
-//            logger.log(Level.INFO, "New RTSP state: INIT\n");
-//            return true;
-//        }
-        if (state == State.INIT) {
-            logger.log(Level.WARNING, "Invalid state for TEARDOWN: " + state);
+        // Prüfen, ob der aktuelle Zustand TEARDOWN erlaubt
+        if (state != State.READY && state != State.PLAYING) {
+            logger.log(Level.WARNING, "TEARDOWN not allowed in state: " + state);
             return false;
         }
 
-        RTSPSeqNb++;  // Increase RTSP sequence number for each request
-        send_RTSP_request("TEARDOWN");
+        try {
+            // RTSP-Sequenznummer erhöhen
+            RTSPSeqNb++;
 
-        // Wait for response
-        logger.log(Level.INFO, "Waiting for TEARDOWN response...");
-        if (parse_server_response() != 200) {
-            logger.log(Level.WARNING, "Invalid Server Response for TEARDOWN");
-            return false;
-        } else {
-            // Reset state to INIT
-            state = State.INIT;
-            logger.log(Level.INFO, "New RTSP state: INIT");
+            // TEARDOWN-Anfrage senden
+            logger.log(Level.INFO, "Sending RTSP TEARDOWN request...");
+            send_RTSP_request("TEARDOWN");
 
-            // Close the connection
-            try {
-                RTSPsocket.close();
-                logger.log(Level.INFO, "RTSP socket closed");
-                return true;
-            } catch (Exception ex) {
-                logger.log(Level.SEVERE, "Failed to close RTSP socket: " + ex);
+            // Warten auf die Serverantwort
+            logger.log(Level.INFO, "Waiting for server response...");
+            int responseCode = parse_server_response();
+
+            if (responseCode != 200) {
+                logger.log(Level.WARNING, "TEARDOWN failed. Server responded with: " + responseCode);
                 return false;
             }
+
+            // Zustand aktualisieren
+            state = State.INIT;
+            logger.log(Level.INFO, "TEARDOWN successful. New RTSP state: INIT");
+            return true;
+
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "An error occurred during TEARDOWN: " + e.getMessage(), e);
+            return false;
         }
     }
 
@@ -155,15 +151,5 @@ public class Rtsp extends RtspDemo {
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Error sending RTSP request: " + e.getMessage());
         }
-    }
-
-
-    public Rtsp(URI url, int rtpRcvPort) {
-        super(url, rtpRcvPort);
-
-    }
-
-    public Rtsp(BufferedReader RTSPBufferedReader, BufferedWriter RTSPBufferedWriter) {
-        super(RTSPBufferedReader, RTSPBufferedWriter);
     }
 }
